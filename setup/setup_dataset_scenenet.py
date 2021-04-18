@@ -10,17 +10,24 @@ from skimage import morphology as skmorph
 from sklearn.cluster import MiniBatchKMeans
 
 
-parser = argparse.ArgumentParser()
-
-parser.add_argument('--sparse_input_type', type=str, default='corner')
-
-args = parser.parse_args()
-
-
 N_CLUSTER = 1500
 N_HEIGHT = 480
 N_WIDTH = 640
 MIN_POINTS = 1400
+
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--sparse_depth_distro_type',   type=str, default='corner')
+parser.add_argument('--sequences_to_process',       nargs='+', type=int, default=-1)
+parser.add_argument('--n_points',                   type=int, default=N_CLUSTER)
+parser.add_argument('--min_points',                 type=int, default=MIN_POINTS)
+parser.add_argument('--n_height',                   type=int, default=N_HEIGHT)
+parser.add_argument('--n_width',                    type=int, default=N_WIDTH)
+
+
+args = parser.parse_args()
+
 
 def process_frame(args):
     '''
@@ -39,10 +46,10 @@ def process_frame(args):
     image_path, ground_truth_path = args
 
     # Load image (for corner detection) to generate validity map
-    image = cv2.resize(cv2.imread(image_path), (N_WIDTH, N_HEIGHT))
+    image = cv2.resize(cv2.imread(image_path), (args.n_width, args.n_height))
     image = np.float32(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
 
-    if args.sparse_input_type == 'corner':
+    if args.sparse_depth_distro_type == 'corner':
         N_INIT_CORNER = 30000
 
         # Run Harris corner detector
@@ -58,7 +65,7 @@ def process_frame(args):
         corner_locs = np.transpose(np.array([corner_locs[0], corner_locs[1]]))
 
         kmeans = MiniBatchKMeans(
-            n_clusters=N_CLUSTER,
+            n_clusters=args.n_points,
             max_iter=2,
             n_init=1,
             init_size=None,
@@ -70,10 +77,12 @@ def process_frame(args):
         validity_map = np.zeros_like(image).astype(np.int16)
         validity_map[corner_locs[:, 0], corner_locs[:, 1]] = 1
 
-    elif args.sparse_input_type == 'uniform':
-        indices = np.array([[h, w] for h in range(N_HEIGHT) for w in range(N_WIDTH)])
+    elif args.sparse_depth_distro_type == 'uniform':
+        indices = \
+            np.array([[h, w] for h in range(args.n_height) for w in range(args.n_width)])
 
-        selected_indices = np.random.permutation(range(N_HEIGHT*N_WIDTH))[0:N_CLUSTER]
+        selected_indices = \
+            np.random.permutation(range(args.n_height * args.n_width))[0:args.n_points]
         selected_indices = indices[selected_indices]
 
         validity_map = np.zeros_like(image).astype(np.int16)
@@ -83,7 +92,7 @@ def process_frame(args):
 
     ground_truth = cv2.resize(
         ground_truth,
-        (N_WIDTH, N_HEIGHT),
+        (args.n_width, args.n_height),
         interpolation=cv2.INTER_NEAREST)
 
     sparse_depth = validity_map * ground_truth
@@ -91,11 +100,11 @@ def process_frame(args):
 
     # Shape check
     error_flag = False
-    if np.squeeze(sparse_depth).shape != (N_HEIGHT, N_WIDTH):
+    if np.squeeze(sparse_depth).shape != (args.n_height, args.n_width):
         error_flag = True
         print('FAILED: sparse depth height and width do not match specified values')
 
-    if np.squeeze(semi_dense_depth).shape != (N_HEIGHT, N_WIDTH):
+    if np.squeeze(semi_dense_depth).shape != (args.n_height, args.n_width):
         error_flag = True
         print('FAILED: semi dense depth height and width do not match specified values')
 
@@ -104,7 +113,7 @@ def process_frame(args):
         error_flag = True
         print('FAILED: validity map contains values other than 0 or 1')
 
-    if validity_map.sum() < MIN_POINTS:
+    if validity_map.sum() < args.min_points:
         error_flag = True
         print('FAILED: validity map contains fewer points than miniumum point threshold')
 
@@ -113,11 +122,11 @@ def process_frame(args):
         error_flag = True
         print('FAILED: ground truth value less than 0 or greater than 256')
 
-    if np.sum(np.where(semi_dense_depth > 0.0, 1.0, 0.0)) < MIN_POINTS:
+    if np.sum(np.where(semi_dense_depth > 0.0, 1.0, 0.0)) < args.min_points:
         error_flag = True
         print('FAILED: valid semi dense depth is less than minimum point threshold', np.sum(np.where(semi_dense_depth > 0.0, 1.0, 0.0)))
 
-    if np.sum(np.where(ground_truth > 0.0, 1.0, 0.0)) < MIN_POINTS:
+    if np.sum(np.where(ground_truth > 0.0, 1.0, 0.0)) < args.min_points:
         error_flag = True
         print('FAILED: valid ground truth is less than minimum point threshold', np.sum(np.where(ground_truth > 0.0, 1.0, 0.0)))
 
@@ -165,23 +174,24 @@ Process dataset
 SCENENET_ROOT_DIRPATH = os.path.join('data', 'scenenet', 'train')
 SCENENET_OUT_DIRPATH = os.path.join(
     'data',
-    'scenenet_learning_topology_{}'.format(args.sparse_input_type),
+    'scenenet_learning_topology_{}'.format(args.sparse_depth_distro_type),
     'train')
 
 TRAIN_OUTPUT_REF_DIRPATH = os.path.join('training', 'scenenet')
 
 TRAIN_SPARSE_DEPTH_OUTPUT_FILEPATH = os.path.join(
     TRAIN_OUTPUT_REF_DIRPATH,
-    'scenenet_train_sparse_depth_{}.txt'.format(args.sparse_input_type))
+    'scenenet_train_sparse_depth_{}.txt'.format(args.sparse_depth_distro_type))
 TRAIN_VALIDITY_MAP_OUTPUT_FILEPATH = os.path.join(
     TRAIN_OUTPUT_REF_DIRPATH,
-    'scenenet_train_validity_map_{}.txt'.format(args.sparse_input_type))
+    'scenenet_train_validity_map_{}.txt'.format(args.sparse_depth_distro_type))
 TRAIN_SEMI_DENSE_DEPTH_OUTPUT_FILEPATH = os.path.join(
     TRAIN_OUTPUT_REF_DIRPATH,
-    'scenenet_train_semi_dense_depth_{}.txt'.format(args.sparse_input_type))
+    'scenenet_train_semi_dense_depth_{}.txt'.format(args.sparse_depth_distro_type))
 TRAIN_GROUND_TRUTH_OUTPUT_FILEPATH = os.path.join(
     TRAIN_OUTPUT_REF_DIRPATH,
-    'scenenet_train_ground_truth_{}.txt'.format(args.sparse_input_type))
+    'scenenet_train_ground_truth_{}.txt'.format(args.sparse_depth_distro_type))
+
 
 output_sparse_depth_paths = []
 output_validity_map_paths = []
@@ -192,7 +202,12 @@ sequence_base_dirpaths = sorted(glob.glob(os.path.join(SCENENET_ROOT_DIRPATH, '*
 
 # Example file structure: data/scenenet/train/1/1000/
 for sequence_base_dirpath in sequence_base_dirpaths:
+
     seq_id = sequence_base_dirpath.split(os.sep)[-2]
+
+    if -1 not in args.sequences_to_process and not int(seq_id) in args.sequences_to_process:
+        # Skip sequence if not in list of sequences to process, -1 to process all
+        continue
 
     output_sequence_sparse_depth_paths = []
     output_sequence_validity_map_paths = []
