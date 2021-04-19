@@ -10,10 +10,11 @@ from skimage import morphology as skmorph
 from sklearn.cluster import MiniBatchKMeans
 
 
-N_CLUSTER = 1500
-N_HEIGHT = 480
-N_WIDTH = 640
-MIN_POINTS = 1400
+N_CLUSTER = 384
+N_HEIGHT = 240
+N_WIDTH = 320
+MIN_POINTS = 360
+N_INIT_CORNER = 15000
 
 
 parser = argparse.ArgumentParser()
@@ -50,8 +51,6 @@ def process_frame(inputs):
     image = np.float32(cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
 
     if args.sparse_depth_distro_type == 'corner':
-        N_INIT_CORNER = 30000
-
         # Run Harris corner detector
         corners = cv2.cornerHarris(image, blockSize=5, ksize=3, k=0.04)
 
