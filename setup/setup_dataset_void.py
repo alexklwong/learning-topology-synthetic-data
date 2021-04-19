@@ -65,13 +65,13 @@ VOID_TEST_GROUND_TRUTH_1500_FILEPATH    = os.path.join(TEST_REFS_DIRPATH, 'void_
 VOID_TEST_INTRINSICS_1500_FILEPATH      = os.path.join(TEST_REFS_DIRPATH, 'void_test_intrinsics_1500.txt')
 
 
-def process_frame(args):
+def process_frame(inputs):
     image_path1, \
         image_path0, \
         image_path2, \
         sparse_depth_path, \
         validity_map_path, \
-        ground_truth_path = args
+        ground_truth_path = inputs
 
     # Create image composite of triplets
     image1 = cv2.imread(image_path1)

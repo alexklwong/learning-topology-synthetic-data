@@ -29,12 +29,12 @@ parser.add_argument('--n_width',                    type=int, default=N_WIDTH)
 args = parser.parse_args()
 
 
-def process_frame(args):
+def process_frame(inputs):
     '''
     Processes a single frame
 
     Args:
-        args : tuple
+        inputs : tuple
             image path, ground truth path
     Returns:
         str : output sparse depth path
@@ -43,7 +43,7 @@ def process_frame(args):
         str : output ground truth path
     '''
 
-    image_path, ground_truth_path = args
+    image_path, ground_truth_path = inputs
 
     # Load image (for corner detection) to generate validity map
     image = cv2.resize(cv2.imread(image_path), (args.n_width, args.n_height))

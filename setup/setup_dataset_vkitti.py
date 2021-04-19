@@ -45,7 +45,7 @@ OUTPUT_GROUND_TRUTH_FILEPATH = os.path.join(
     OUTPUT_REF_DIRPATH, 'vkitti_train_ground_truth.txt')
 
 
-def process_frame(args):
+def process_frame(inputs):
     '''
     Processes a single depth frame
 
@@ -64,7 +64,7 @@ def process_frame(args):
     '''
 
     # Separate arguments into individual variables
-    kitti_sparse_depth_path, vkitti_ground_truth_path, output_dirpaths = args
+    kitti_sparse_depth_path, vkitti_ground_truth_path, output_dirpaths = inputs
 
     # Extract validity map from KITTI sparse depth
     _, kitti_validity_map = data_utils.load_depth_with_validity_map(kitti_sparse_depth_path)

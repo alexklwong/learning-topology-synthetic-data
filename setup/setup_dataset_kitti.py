@@ -95,12 +95,12 @@ TEST_INTRINSICS_OUTPUT_FILEPATH = os.path.join(
     TEST_OUTPUT_REF_DIRPATH, 'kitti_test_intrinsics.txt')
 
 
-def process_frame(args):
+def process_frame(inputs):
     '''
     Processes a single depth frame
 
     Args:
-        args : tuple
+        inputs : tuple
             image path at time t=0,
             image path at time t=1,
             image path at time t=-1,
@@ -117,7 +117,7 @@ def process_frame(args):
         image1_path, \
         image2_path, \
         sparse_depth_path, \
-        ground_truth_path = args
+        ground_truth_path = inputs
 
     # Read images and concatenate together
     image0 = cv2.imread(image0_path)
