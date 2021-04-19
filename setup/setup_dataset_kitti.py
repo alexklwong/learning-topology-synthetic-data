@@ -492,7 +492,7 @@ for mode in modes:
 
             elif refdir == 'sparse_depth':
                 # Load sparse depth and save validity map
-                validity_map = data_utils.load_depth_with_validity_map(path)
+                _, validity_map = data_utils.load_depth_with_validity_map(path)
 
                 # Create validity map output path
                 validity_map_output_path = path \
