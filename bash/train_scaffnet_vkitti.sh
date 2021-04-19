@@ -1,0 +1,31 @@
+export CUDA_VISIBLE_DEVICES=0
+
+python src/train_connectivity_model.py \
+--train_sparse_depth_path training/vkitti_train_sparse_depth.txt \
+--train_validity_map_path training/vkitti_train_validity_map.txt \
+--train_ground_truth_path training/vkitti_train_ground_truth.txt \
+--val_sparse_depth_path validation/kitti_val_sparse_depth.txt \
+--val_validity_map_path validation/kitti_val_validity_map.txt \
+--val_ground_truth_path validation/kitti_val_semi_dense_depth.txt \
+--n_height 320 \
+--n_width 768 \
+--depth_load_multiplier 256 \
+--augment_random_crop \
+--n_epoch 50 \
+--learning_rates 4.00e-4 3.00e-4 2.00e-4 1.00e-4 \
+--learning_schedule 8 20 30 \
+--loss_func l1_norm \
+--network_type connet32 \
+--activation_func leaky_relu \
+--output_func identity \
+--pool_rates_spp 5 7 9 11 \
+--n_conv_spp 3 \
+--n_filter_output 32 \
+--min_dataset_depth 1.5 \
+--max_dataset_depth 80.0 \
+--min_predict_depth 1.5 \
+--max_predict_depth 100.0 \
+--min_evaluate_depth 0.0 \
+--max_evaluate_depth 100.0 \
+--n_checkpoint 5000 \
+--checkpoint_path trained_models_vkitti/linear_pool5-7-9-11-p3_k5_out32_l1norm_lr0-4e4_8-3e4_20-2e4_30-1e4_50_gt15-80_randcrop
