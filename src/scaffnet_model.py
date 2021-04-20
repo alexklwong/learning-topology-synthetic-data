@@ -1,5 +1,5 @@
 import tensorflow as tf
-import networks, net_utils, losses
+import networks, log_utils, losses
 import global_constants as settings
 
 
@@ -186,10 +186,10 @@ class ScaffNetModel(object):
             # Visualize depth maps
             tf.summary.image('sparse_depth-ground_truth-output_depth-error',
                 tf.concat([
-                    net_utils.gray2color(self.sparse_depth, colormap='viridis'),
-                    net_utils.gray2color(self.ground_truth, colormap='viridis'),
-                    net_utils.gray2color(self.predict, colormap='viridis'),
-                    net_utils.gray2color(
+                    log_utils.gray2color(self.sparse_depth, colormap='viridis'),
+                    log_utils.gray2color(self.ground_truth, colormap='viridis'),
+                    log_utils.gray2color(self.predict, colormap='viridis'),
+                    log_utils.gray2color(
                         tf.where(self.validity_map_ground_truth > 0,
                             tf.abs(self.predict - self.ground_truth) / self.ground_truth,
                             self.validity_map_ground_truth),

@@ -70,7 +70,10 @@ def process_frame(inputs):
     _, kitti_validity_map = data_utils.load_depth_with_validity_map(kitti_sparse_depth_path)
 
     # Load Virtual KITTI ground truth
-    vkitti_ground_truth = data_utils.load_depth(vkitti_ground_truth_path)
+    vkitti_ground_truth = \
+        cv2.imread(vkitti_ground_truth_path, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
+
+    vkitti_ground_truth = vkitti_ground_truth / 100.0
 
     if kitti_validity_map.shape != vkitti_ground_truth.shape:
         # Resize KITTI validity map to VKITTI size
@@ -83,7 +86,7 @@ def process_frame(inputs):
 
     # Get Virtual KITTI dense depth without sky
     vkitti_validity_map = np.ones(vkitti_ground_truth.shape)
-    vkitti_validity_map[vkitti_ground_truth > 255.0] = 0.0
+    vkitti_validity_map[vkitti_ground_truth > 600.0] = 0.0
     vkitti_dense_depth = vkitti_validity_map * vkitti_ground_truth
 
     # Get Virtual KITTI sparse depth

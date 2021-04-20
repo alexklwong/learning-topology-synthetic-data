@@ -23,7 +23,7 @@ ACTIVATION_FUNC                     = 'leaky_relu'
 OUTPUT_FUNC                         = 'linear'
 IM_FILTER_PCT                       = 0.75
 ZV_FILTER_PCT                       = 0.25
-N_OUTPUT_FILTER                     = 0
+N_FILTER_OUTPUT                     = 0
 
 # Spatial pyramid pooling
 POOL_KERNEL_SIZES_SPP               = [5, 7, 9, 11]

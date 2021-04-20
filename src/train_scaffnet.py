@@ -53,11 +53,11 @@ parser.add_argument('--loss_func',
 parser.add_argument('--network_type',
     type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
 parser.add_argument('--activation_func',
-    type=str, default=settings.ACT_FUNC, help='Activation function for network')
+    type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
 parser.add_argument('--output_func',
-    type=str, default=settings.OUT_FUNC, help='Output function for network')
+    type=str, default=settings.OUTPUT_FUNC, help='Output function for network')
 parser.add_argument('--n_filter_output',
-    type=int, default=settings.N_OUTPUT_FILTER, help='Number of filters to use in final full resolution output')
+    type=int, default=settings.N_FILTER_OUTPUT, help='Number of filters to use in final full resolution output')
 
 # Spatial pyramid pooling
 parser.add_argument('--pool_kernel_sizes_spp',
@@ -67,15 +67,15 @@ parser.add_argument('--n_convolution_spp',
 
 # Depth prediction settings
 parser.add_argument('--min_predict_depth',
-    type=float, default=settings.MIN_PREDICT_Z, help='Minimum depth value to predict')
+    type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth value to predict')
 parser.add_argument('--max_predict_depth',
-    type=float, default=settings.MAX_PREDICT_Z, help='Maximum depth value to predict')
+    type=float, default=settings.MAX_PREDICT_DEPTH, help='Maximum depth value to predict')
 
 # Depth evaluation settings
 parser.add_argument('--min_evaluate_depth',
-    type=float, default=settings.MIN_EVALUATE_Z, help='Minimum depth value evaluate')
+    type=float, default=settings.MIN_EVALUATE_DEPTH, help='Minimum depth value evaluate')
 parser.add_argument('--max_evaluate_depth',
-    type=float, default=settings.MAX_EVALUATE_Z, help='Maximum depth value to evaluate')
+    type=float, default=settings.MAX_EVALUATE_DEPTH, help='Maximum depth value to evaluate')
 
 # Checkpoint and restore paths
 parser.add_argument('--checkpoint_path',

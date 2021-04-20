@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from data_utils import log
+from log_utils import log
 
 
 def root_mean_sq_err(src, tgt):
