@@ -93,8 +93,6 @@ def train(train_sparse_depth_path,
     val_sparse_depth_paths = data_utils.pad_batch(val_sparse_depth_paths, n_batch)
     val_validity_map_paths = data_utils.pad_batch(val_validity_map_paths, n_batch)
 
-    n_val_step = len(val_sparse_depth_paths) // n_batch
-
     # Load validation ground truth and do center crop
     val_ground_truths = []
     for idx in range(len(val_ground_truth_paths)):
@@ -300,26 +298,15 @@ def train(train_sparse_depth_path,
                         random_crop=False,
                         random_horizontal_flip=False)
 
-                    val_output_depths = np.zeros([n_val_step * n_batch, n_height, n_width, 1])
-                    val_step = 0
-
-                    while True:
-                        try:
-                            val_batch_start = val_step * n_batch
-                            val_batch_end = val_step * n_batch + n_batch
-                            val_step += 1
-
-                            # Forward through network
-                            val_output_depths_batch, val_summary = session.run([model.predict, model_summary])
-                            val_output_depths[val_batch_start:val_batch_end, ...] = val_output_depths_batch
-
-                            # Write validation results to summary
-                            val_summary_writer.add_summary(val_summary, global_step=train_step)
-                        except tf.errors.OutOfRangeError:
-                            break
-
-                    # Remove outputs of padded examples
-                    val_output_depths = val_output_depths[0:n_val_sample, ...]
+                    # Run model on validation samples
+                    val_output_depths = run(
+                        model,
+                        session,
+                        n_sample=n_val_sample,
+                        summary=model_summary,
+                        summary_writer=val_summary_writer,
+                        step=train_step,
+                        verbose=False)
 
                     # Run validation metrics
                     best_results = eval_utils.evaluate(
@@ -372,3 +359,35 @@ def train(train_sparse_depth_path,
                     random_horizontal_flip=augment_random_horizontal_flip)
 
         train_saver.save(session, model_path, global_step=n_train_step)
+
+def run(model, session, n_sample, summary=None, summary_writer=None, step=-1, verbose=False):
+
+    output_depths = []
+    n_processed = 0
+
+    while True:
+        try:
+            if summary is not None and summary_writer is not None:
+                # Run model and summary
+                output_depth, model_summary = session.run(model.predict, summary)
+
+                # Write results to summary
+                summary_writer.add_summary(summary, global_step=step)
+            else:
+                # Run model
+                output_depth = session.run(model.predict)
+
+            output_depths.append(output_depth)
+
+            if verbose:
+                n_processed += output_depth.shape[0]
+                print('Processed {}/{} examples'.format(n_processed, n_sample), end='\r')
+
+        except tf.errors.OutOfRangeError:
+            break
+
+    # Drop samples used for padding batch
+    output_depths = np.concatenate(output_depths, axis=0)
+    output_depths = output_depths[0:n_sample, ...]
+
+    return output_depths

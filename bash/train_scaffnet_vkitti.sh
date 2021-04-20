@@ -10,6 +10,8 @@ python src/train_scaffnet.py \
 --n_height 320 \
 --n_width 768 \
 --depth_load_multiplier 256 \
+--min_dataset_depth 1.5 \
+--max_dataset_depth 80.0 \
 --augment_random_crop \
 --n_epoch 50 \
 --learning_rates 4.00e-4 3.00e-4 2.00e-4 1.00e-4 \
@@ -21,8 +23,6 @@ python src/train_scaffnet.py \
 --pool_kernel_sizes_spp 5 7 9 11 \
 --n_convolution_spp 3 \
 --n_filter_output 32 \
---min_dataset_depth 1.5 \
---max_dataset_depth 80.0 \
 --min_predict_depth 1.5 \
 --max_predict_depth 100.0 \
 --min_evaluate_depth 0.0 \
