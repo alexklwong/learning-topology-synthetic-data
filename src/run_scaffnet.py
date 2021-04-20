@@ -6,11 +6,11 @@ import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 import global_constants as settings
-import data_utils, validation_utils
+import data_utils, eval_utils
 from scaffnet_dataloader import ScaffNetDataloader
 from scaffnet_model import ScaffNetModel
 from scaffnet import run
-from data_utils import log
+from log_utils import log
 
 
 N_HEIGHT = 352
@@ -214,7 +214,7 @@ with tf.Graph().as_default():
 
     if ground_truth_available:
         # Run evaluation metrics
-        validation_utils.validate(
+        eval_utils.evaluate(
             output_depths,
             ground_truths,
             log_path=log_path,

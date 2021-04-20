@@ -1,5 +1,9 @@
 .DS_Store
 .vscode
+best_models_vkitti
+best_models_kitti
+best_models_scenenet
+best_models_void
 data
 setup/__pycache__
 src/__pycache__

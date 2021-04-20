@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 
-python src/run_scaffnet_model.py \
+python src/run_scaffnet.py \
 --restore_path \
 best_models_vkitti/identity_l1norm_enc1_57911-px3_k5_out32-3_2x_0/best/model.ckpt-105000 \
 --sparse_depth_path \

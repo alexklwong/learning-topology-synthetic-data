@@ -1,12 +1,16 @@
 #!/bin/bash
 
-export CUDA_VISIBLE_DEVICES=3
+export CUDA_VISIBLE_DEVICES=1
 
 # $1 : path to directory containing checkpoints
+# $2 : first checkpoint to evaluate
+# $3 : increment between checkpoints
+# $4 : last checkpoint to evaluate
 
-for n in $(seq 50000 5000 200000)
+# for n in $(seq 100000 5000 200000)
+for n in $(seq $2 $3 $4)
 do
-python src/run_scaffnet_model.py \
+python src/run_scaffnet.py \
 --restore_path $1/model.ckpt-$n \
 --sparse_depth_path \
 validation/kitti/kitti_val_sparse_depth.txt \
