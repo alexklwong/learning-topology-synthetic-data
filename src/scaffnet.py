@@ -6,7 +6,7 @@ import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 import global_constants as settings
-import data_utils, validation_utils
+import data_utils, eval_utils
 from scaffnet_dataloader import ScaffNetDataloader
 from scaffnet_model import ScaffNetModel
 from log_utils import log
@@ -322,7 +322,7 @@ def train(train_sparse_depth_path,
                     val_output_depths = val_output_depths[0:n_val_sample, ...]
 
                     # Run validation metrics
-                    best_results = validation_utils.validate(
+                    best_results = eval_utils.evaluate(
                         val_output_depths,
                         val_ground_truths,
                         best_results,

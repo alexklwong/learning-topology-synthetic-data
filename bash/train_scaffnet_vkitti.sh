@@ -1,6 +1,6 @@
 export CUDA_VISIBLE_DEVICES=0
 
-python src/train_connectivity_model.py \
+python src/train_scaffnet.py \
 --train_sparse_depth_path training/vkitti_train_sparse_depth.txt \
 --train_validity_map_path training/vkitti_train_validity_map.txt \
 --train_ground_truth_path training/vkitti_train_ground_truth.txt \
