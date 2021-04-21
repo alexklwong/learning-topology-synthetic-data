@@ -369,10 +369,10 @@ def run(model, session, n_sample, summary=None, summary_writer=None, step=-1, ve
         try:
             if summary is not None and summary_writer is not None:
                 # Run model and summary
-                output_depth, model_summary = session.run(model.predict, summary)
+                output_depth, model_summary = session.run([model.predict, summary])
 
                 # Write results to summary
-                summary_writer.add_summary(summary, global_step=step)
+                summary_writer.add_summary(model_summary, global_step=step)
             else:
                 # Run model
                 output_depth = session.run(model.predict)
