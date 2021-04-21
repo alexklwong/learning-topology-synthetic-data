@@ -175,8 +175,12 @@ def train(train_sparse_depth_path,
         log('Batch settings:', log_path)
         log('n_batch=%d  n_height=%d  n_width=%d' %
             (n_batch, n_height, n_width), log_path)
+
+        log('Dataloader settings:', log_path)
         log('depth_load_multiplier=%.2f' %
             (depth_load_multiplier), log_path)
+        log('min_dataset_depth=%.2f  max_dataset_depth=%.2f' %
+            (min_dataset_depth, max_dataset_depth), log_path)
         log('augment_random_crop=%s  augment_random_horizontal_flip=%s' %
             (augment_random_crop, augment_random_horizontal_flip), log_path)
 
@@ -197,15 +201,13 @@ def train(train_sparse_depth_path,
             (network_type, n_parameter), log_path)
         log('activation_func=%s  output_func=%s' %
             (activation_func, output_func), log_path)
-        log('pool_rates_spp=[%s]  n_conv_spp=%d' %
-            (', '.join([str(i) for i in pool_kernel_sizes_spp]),
-            n_convolution_spp), log_path)
         log('n_filter_output=%s' %
             (str(n_filter_output) if n_filter_output > 0 else 'upsample'), log_path)
+        log('pool_kernel_sizes_spp=[%s]  n_convolution_spp=%d' %
+            (', '.join([str(i) for i in pool_kernel_sizes_spp]),
+            n_convolution_spp), log_path)
 
         log('Depth range settings:', log_path)
-        log('min_dataset_depth=%.2f  max_dataset_depth=%.2f' %
-            (min_dataset_depth, max_dataset_depth), log_path)
         log('min_predict_depth=%.2f  max_predict_depth=%.2f' %
             (min_predict_depth, max_predict_depth), log_path)
         log('min_evaluate_depth=%.2f  max_evaluate_depth=%.2f' %
