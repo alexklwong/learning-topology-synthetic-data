@@ -27,8 +27,8 @@ with tf.Session() as session:
 
         # Rename variable scope
         if args.variable_scope in variable_name:
-            variable_renamed = variable_name
-            variable_renamed.replace(args.variable_scope, args.new_variable_scope)
+
+            variable_renamed = variable_renamed.replace(args.variable_scope, args.new_variable_scope)
 
             print('Renaming {} to {}'.format(variable_name, variable_renamed))
 

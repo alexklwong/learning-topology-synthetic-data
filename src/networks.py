@@ -351,7 +351,7 @@ def connet16(depth,
         list : list containing prediction and upsampled prediction at original resolution
     '''
 
-    with tf.variable_scope('connet16'):
+    with tf.variable_scope('scaffnet16'):
         n_filters = [16, 32, 64, 96, 128]
         shape = depth.get_shape().as_list()[1:3]
 
@@ -409,7 +409,7 @@ def connet32(depth,
         list : list containing prediction and upsampled prediction at original resolution
     '''
 
-    with tf.variable_scope('connet32'):
+    with tf.variable_scope('scaffnet32'):
         n_filters = [32, 64, 96, 128, 196]
         shape = depth.get_shape().as_list()[1:3]
 
