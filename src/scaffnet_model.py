@@ -26,6 +26,8 @@ class ScaffNetModel(object):
             kernel sizes to use for spatial pyramid pooling
         n_convolution_spp : int
             number of 1 x 1 convolutions to balance density vs. details trade-off
+        n_filter_spp : int
+            number of filters to use in 1 x 1 convolutions in spatial pyramid pooling
         min_dataset_depth : float
             minimum depth value to consider, if less than actual minimium of dataset then cap
         max_dataset_depth : float
@@ -49,6 +51,7 @@ class ScaffNetModel(object):
                  n_filter_output=settings.N_FILTER_OUTPUT,
                  pool_kernel_sizes_spp=settings.POOL_KERNEL_SIZES_SPP,
                  n_convolution_spp=settings.N_CONVOLUTION_SPP,
+                 n_filter_spp=settings.N_FILTER_SPP,
                  min_dataset_depth=settings.MIN_DATASET_DEPTH,
                  max_dataset_depth=settings.MAX_DATASET_DEPTH,
                  min_predict_depth=settings.MIN_PREDICT_DEPTH,
@@ -129,22 +132,22 @@ class ScaffNetModel(object):
             self.output_depth = networks.connet16(
                 input_depth,
                 n_output=1,
-                act_fn=activation_fn,
-                out_fn=output_fn,
-                pool_rates_spp=pool_kernel_sizes_spp,
-                n_conv_spp=n_convolution_spp,
-                keep_input_spp=False,
-                n_filter_output=n_filter_output)
+                activation_fn=activation_fn,
+                output_fn=output_fn,
+                n_filter_output=n_filter_output,
+                pool_kernel_sizes_spp=pool_kernel_sizes_spp,
+                n_convolution_spp=n_convolution_spp,
+                n_filter_spp=n_filter_spp)
         elif network_type == 'scaffnet32':
             self.output_depth = networks.connet32(
                 input_depth,
                 n_output=1,
-                act_fn=activation_fn,
-                out_fn=output_fn,
-                pool_rates_spp=pool_kernel_sizes_spp,
-                n_conv_spp=n_convolution_spp,
-                keep_input_spp=False,
-                n_filter_output=n_filter_output)
+                activation_fn=activation_fn,
+                output_fn=output_fn,
+                n_filter_output=n_filter_output,
+                pool_kernel_sizes_spp=pool_kernel_sizes_spp,
+                n_convolution_spp=n_convolution_spp,
+                n_filter_spp=n_filter_spp)
 
         self.output_depth = self.output_depth[-1]
 

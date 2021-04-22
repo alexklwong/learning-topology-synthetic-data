@@ -59,6 +59,8 @@ parser.add_argument('--pool_kernel_sizes_spp',
     nargs='+', type=int, default=settings.POOL_KERNEL_SIZES_SPP, help='Kernel sizes for spatial pyramid pooling')
 parser.add_argument('--n_convolution_spp',
     type=int, default=settings.N_CONVOLUTION_SPP, help='Number of convolutions to use to balance density vs. detail tradeoff')
+parser.add_argument('--n_filter_spp',
+    type=int, default=settings.N_FILTER_SPP, help='Number of filters to use in 1 x 1 convolutions in spatial pyramid pooling')
 # Depth prediction settings
 parser.add_argument('--min_predict_depth',
     type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth value to predict')
@@ -126,6 +128,7 @@ if __name__ == '__main__':
           # Spatial pyramid pooling
           pool_kernel_sizes_spp=args.pool_kernel_sizes_spp,
           n_convolution_spp=args.n_convolution_spp,
+          n_filter_spp=args.n_filter_spp,
           # Depth prediction settings
           min_predict_depth=args.min_predict_depth,
           max_predict_depth=args.max_predict_depth,

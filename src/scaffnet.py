@@ -42,6 +42,7 @@ def train(train_sparse_depth_path,
           # Spatial pyramid pooling
           pool_kernel_sizes_spp=settings.POOL_KERNEL_SIZES_SPP,
           n_convolution_spp=settings.N_CONVOLUTION_SPP,
+          n_filter_spp=settings.N_FILTER_SPP,
           # Depth prediction settings
           min_predict_depth=settings.MIN_PREDICT_DEPTH,
           max_predict_depth=settings.MAX_PREDICT_DEPTH,
@@ -153,6 +154,7 @@ def train(train_sparse_depth_path,
             n_filter_output=n_filter_output,
             pool_kernel_sizes_spp=pool_kernel_sizes_spp,
             n_convolution_spp=n_convolution_spp,
+            n_filter_spp=n_filter_spp,
             min_dataset_depth=min_dataset_depth,
             max_dataset_depth=max_dataset_depth,
             min_predict_depth=min_predict_depth,
@@ -203,9 +205,10 @@ def train(train_sparse_depth_path,
             (activation_func, output_func), log_path)
         log('n_filter_output=%s' %
             (str(n_filter_output) if n_filter_output > 0 else 'upsample'), log_path)
-        log('pool_kernel_sizes_spp=[%s]  n_convolution_spp=%d' %
+        log('pool_kernel_sizes_spp=[%s]  n_convolution_spp=%d  n_filter_spp=%d' %
             (', '.join([str(i) for i in pool_kernel_sizes_spp]),
-            n_convolution_spp), log_path)
+            n_convolution_spp,
+            n_filter_spp), log_path)
 
         log('Depth range settings:', log_path)
         log('min_predict_depth=%.2f  max_predict_depth=%.2f' %

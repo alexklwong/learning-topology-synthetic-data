@@ -30,6 +30,7 @@ validation/kitti/kitti_val_ground_truth.txt \
 --n_filter_output 32 \
 --pool_kernel_sizes_spp 5 7 9 11 \
 --n_convolution_spp 3 \
+--n_filter_spp 32 \
 --min_predict_depth 1.5 \
 --max_predict_depth 100.0 \
 --min_evaluate_depth 0.0 \

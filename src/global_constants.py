@@ -28,6 +28,7 @@ N_FILTER_OUTPUT                     = 0
 # Spatial pyramid pooling
 POOL_KERNEL_SIZES_SPP               = [5, 7, 9, 11]
 N_CONVOLUTION_SPP                   = 3
+N_FILTER_SPP                        = 32
 
 # Depth prediction settings
 MIN_PREDICT_DEPTH                   = 1.50
