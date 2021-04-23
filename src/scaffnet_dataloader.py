@@ -124,7 +124,7 @@ class ScaffNetDataloader(object):
         def crop_func(in0, in1, random_horizontal_crop, random_vertical_crop):
             # Center crop to specified height and width, default bottom centered
             shape = tf.shape(in0)
-            start_height = shape[0] - self.n_height
+            start_height = tf.to_float(shape[0] - self.n_height)
             end_height = shape[0]
             start_width = tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0)
 
