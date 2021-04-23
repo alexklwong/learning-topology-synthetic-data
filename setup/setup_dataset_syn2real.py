@@ -169,7 +169,8 @@ for idx in range(len(steps)):
             ground_truth_paths=sparse_depth_paths,
             depth_load_multiplier=args.depth_load_multiplier,
             do_crop=False,
-            random_crop=False,
+            random_horizontal_crop=False,
+            random_vertical_crop=False,
             random_horizontal_flip=False)
 
         while True:
@@ -286,7 +287,8 @@ for mode in modes:
             ground_truth_paths=sparse_depth_paths,
             depth_load_multiplier=args.depth_load_multiplier,
             do_crop=False,
-            random_crop=False,
+            random_horizontal_crop=False,
+            random_vertical_crop=False,
             random_horizontal_flip=False)
 
         while True:

@@ -23,8 +23,9 @@ def train(train_sparse_depth_path,
           depth_load_multiplier=settings.DEPTH_LOAD_MULTIPLIER,
           min_dataset_depth=settings.MIN_DATASET_DEPTH,
           max_dataset_depth=settings.MAX_DATASET_DEPTH,
-          augment_random_crop=False,
-          augment_random_horizontal_flip=False,
+          augmentation_random_horizontal_crop=False,
+          augmentation_random_vertical_crop=False,
+          augmentation_random_horizontal_flip=False,
           # Batch settings
           n_batch=settings.N_BATCH,
           n_height=settings.N_HEIGHT,
@@ -183,8 +184,12 @@ def train(train_sparse_depth_path,
             (depth_load_multiplier), log_path)
         log('min_dataset_depth=%.2f  max_dataset_depth=%.2f' %
             (min_dataset_depth, max_dataset_depth), log_path)
-        log('augment_random_crop=%s  augment_random_horizontal_flip=%s' %
-            (augment_random_crop, augment_random_horizontal_flip), log_path)
+
+        log('Augmentation settings:', log_path)
+        log('random_horizontal_crop=%s  random_vertical_crop=%s' %
+            (augmentation_random_horizontal_crop, augmentation_random_vertical_crop), log_path)
+        log('random_horizontal_flip=%s' %
+            (augmentation_random_horizontal_flip), log_path)
 
         log('Training settings:', log_path)
         log('n_sample=%d  n_epoch=%d  n_step=%d' %
@@ -263,8 +268,9 @@ def train(train_sparse_depth_path,
             ground_truth_paths=train_ground_truth_paths_epoch,
             depth_load_multiplier=depth_load_multiplier,
             do_crop=True,
-            random_crop=augment_random_crop,
-            random_horizontal_flip=augment_random_horizontal_flip)
+            random_horizontal_crop=augmentation_random_horizontal_crop,
+            random_vertical_crop=augmentation_random_vertical_crop,
+            random_horizontal_flip=augmentation_random_horizontal_flip)
 
         while train_step < n_train_step:
             try:
@@ -300,7 +306,8 @@ def train(train_sparse_depth_path,
                         validity_map_paths=val_validity_map_paths,
                         ground_truth_paths=val_ground_truth_paths,
                         do_crop=True,
-                        random_crop=False,
+                        random_horizontal_crop=False,
+                        random_vertical_crop=False,
                         random_horizontal_flip=False)
 
                     # Run model on validation samples
@@ -336,8 +343,10 @@ def train(train_sparse_depth_path,
                         ground_truth_paths=train_ground_truth_paths_epoch[current_sample:],
                         depth_load_multiplier=depth_load_multiplier,
                         do_crop=True,
-                        random_crop=augment_random_crop,
-                        random_horizontal_flip=augment_random_horizontal_flip)
+                        random_horizontal_crop=augmentation_random_horizontal_crop,
+                        random_vertical_crop=augmentation_random_vertical_crop,
+                        random_horizontal_flip=augmentation_random_horizontal_flip)
+
                     train_saver.save(session, model_path, global_step=train_step)
 
                 train_step += 1
@@ -360,8 +369,9 @@ def train(train_sparse_depth_path,
                     ground_truth_paths=train_ground_truth_paths_epoch,
                     depth_load_multiplier=depth_load_multiplier,
                     do_crop=True,
-                    random_crop=augment_random_crop,
-                    random_horizontal_flip=augment_random_horizontal_flip)
+                    random_horizontal_crop=augmentation_random_horizontal_crop,
+                    random_vertical_crop=augmentation_random_vertical_crop,
+                    random_horizontal_flip=augmentation_random_horizontal_flip)
 
         train_saver.save(session, model_path, global_step=n_train_step)
 

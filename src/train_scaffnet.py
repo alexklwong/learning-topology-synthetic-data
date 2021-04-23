@@ -25,9 +25,11 @@ parser.add_argument('--min_dataset_depth',
     type=float, default=settings.MIN_DATASET_DEPTH, help='Minimum depth value for dataset')
 parser.add_argument('--max_dataset_depth',
     type=float, default=settings.MAX_DATASET_DEPTH, help='Maximum depth value for dataset')
-parser.add_argument('--augment_random_crop',
-    action='store_true', help='If set, perform random crop for augmentation')
-parser.add_argument('--augment_random_horizontal_flip',
+parser.add_argument('--augmentation_random_horizontal_crop',
+    action='store_true', help='If set, perform random crop in horizontal direction for augmentation')
+parser.add_argument('--augmentation_random_vertical_crop',
+    action='store_true', help='If set, perform random crop in vertical direction for augmentation')
+parser.add_argument('--augmentation_random_horizontal_flip',
     action='store_true', help='If set, perform horizontal and vertical flip augmentation')
 # Batch parameters
 parser.add_argument('--n_batch',
@@ -109,8 +111,9 @@ if __name__ == '__main__':
           depth_load_multiplier=args.depth_load_multiplier,
           min_dataset_depth=args.min_dataset_depth,
           max_dataset_depth=args.max_dataset_depth,
-          augment_random_crop=args.augment_random_crop,
-          augment_random_horizontal_flip=args.augment_random_horizontal_flip,
+          augmentation_random_horizontal_crop=args.augmentation_random_horizontal_crop,
+          augmentation_random_vertical_crop=args.augmentation_random_vertical_crop,
+          augmentation_random_horizontal_flip=args.augmentation_random_horizontal_flip,
           # Batch parameters
           n_batch=args.n_batch,
           n_height=args.n_height,

@@ -178,11 +178,10 @@ class ScaffNetModel(object):
             tf.summary.histogram('sparse_depth_distro', self.sparse_depth)
             tf.summary.histogram('ground_truth_distro', self.ground_truth)
             tf.summary.histogram('output_depth_distro', self.output_depth)
-            tf.summary.histogram('validity_map_distro', self.validity_map_sparse_depth)
 
             loss_sparse_depth = losses.l1_loss_func(
                 src=self.predict,
-                tgt=self.ground_truth,
+                tgt=self.sparse_depth,
                 v=self.validity_map_sparse_depth,
                 normalize=True)
             tf.summary.scalar('loss_sparse_depth', loss_sparse_depth)

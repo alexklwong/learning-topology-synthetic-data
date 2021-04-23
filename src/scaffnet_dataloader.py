@@ -46,7 +46,8 @@ class ScaffNetDataloader(object):
 
             # Set up placeholders for data augmentation
             self.crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_crop_placeholder = tf.placeholder(tf.bool, shape=())
+            self.random_horizontal_crop_placeholder = tf.placeholder(tf.bool, shape=())
+            self.random_vertical_crop_placeholder = tf.placeholder(tf.bool, shape=())
             self.random_horizontal_flip_placeholder = tf.placeholder(tf.bool, shape=())
 
             self.dataset = tf.data.Dataset.from_tensor_slices((
@@ -120,19 +121,25 @@ class ScaffNetDataloader(object):
             tensor : h x w x 2 ground truth of sparse depth snd validity map
         '''
 
-        def crop_func(in0, in1, random_crop):
-            # Bottom center crop to specified height and width instead of resize
+        def crop_func(in0, in1, random_horizontal_crop, random_vertical_crop):
+            # Center crop to specified height and width, default bottom centered
             shape = tf.shape(in0)
             start_height = shape[0] - self.n_height
             end_height = shape[0]
             start_width = tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0)
 
-            # If we allow augment then do random horizontal shift
+            # If we allow augmentation then do random horizontal or vertical shift for crop
             start_width = tf.cond(
-                random_crop,
+                random_horizontal_crop,
                 lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * start_width), dtype=tf.int32),
                 lambda: tf.to_int32(start_width))
             end_width = self.n_width + start_width
+
+            start_height = tf.cond(
+                random_vertical_crop,
+                lambda: tf.cast(tf.random_uniform([], 0.0, start_height), dtype=tf.int32),
+                lambda: tf.to_int32(start_height))
+            end_height = self.n_height + start_height
 
             # Apply crop
             in0 = in0[start_height:end_height, start_width:end_width, :]
@@ -143,7 +150,11 @@ class ScaffNetDataloader(object):
         with tf.variable_scope('crop_func'):
             input_depth, ground_truth = tf.cond(
                 self.crop_placeholder,
-                lambda: crop_func(input_depth, ground_truth, self.random_crop_placeholder),
+                lambda: crop_func(
+                    input_depth,
+                    ground_truth,
+                    self.random_horizontal_crop_placeholder,
+                    self.random_vertical_crop_placeholder),
                 lambda: (input_depth, ground_truth))
 
             return input_depth, ground_truth
@@ -182,7 +193,7 @@ class ScaffNetDataloader(object):
             do_flip = tf.random_uniform([], 0.0, 1.0)
 
             input_depth, ground_truth = tf.cond(
-                self.random_crop_placeholder,
+                self.random_horizontal_flip_placeholder,
                 lambda: horizontal_flip_func(input_depth, ground_truth, do_flip),
                 lambda: (input_depth, ground_truth))
 
@@ -254,7 +265,8 @@ class ScaffNetDataloader(object):
                    ground_truth_paths=None,
                    depth_load_multiplier=256.0,
                    do_crop=False,
-                   random_crop=False,
+                   random_horizontal_crop=False,
+                   random_vertical_crop=False,
                    random_horizontal_flip=False):
 
         assert session is not None
@@ -265,7 +277,8 @@ class ScaffNetDataloader(object):
             self.ground_truth_placeholder           : ground_truth_paths,
             self.depth_load_multiplier_placeholder  : depth_load_multiplier,
             self.crop_placeholder                   : do_crop,
-            self.random_crop_placeholder            : random_crop,
+            self.random_horizontal_crop_placeholder : random_horizontal_crop,
+            self.random_vertical_crop_placeholder   : random_vertical_crop,
             self.random_horizontal_flip_placeholder : random_horizontal_flip,
         }
 
@@ -301,7 +314,8 @@ if __name__ == '__main__':
         validity_map_paths=validity_map_paths,
         ground_truth_paths=ground_truth_paths,
         do_crop=False,
-        random_crop=False,
+        random_horizontal_crop=False,
+        random_vertical_crop=False,
         random_horizontal_flip=False)
 
     n_sample = 0

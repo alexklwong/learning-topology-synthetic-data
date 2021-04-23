@@ -2,7 +2,7 @@ export CUDA_VISIBLE_DEVICES=1
 
 python setup/setup_dataset_syn2real.py \
 --restore_path \
-best_models_vkitti/linear_pool5-7-9-11-p3_k5_out32_l1norm_lr0-4e4_10-3e4_20-2e4_29-1e4_50_gt15-80_randcrop_4/model.ckpt-193000 \
+pretrained_models/scaffnet/vkitti/scaffnet.ckpt-vkitti \
 --train_sparse_depth_path \
 training/kitti/kitti_train_sparse_depth-clean.txt \
 --train_validity_map_path \
@@ -15,10 +15,6 @@ validation/kitti/kitti_val_validity_map.txt \
 testing/kitti/kitti_test_validity_map.txt \
 --test_validity_map_path \
 testing/kitti/kitti_test_validity_map.txt \
---input_root_dirpath \
-data/kitti_depth_completion \
---output_root_dirpath \
-data/kitti_depth_completion_learning_topology \
 --depth_load_multiplier 256.0 \
 --min_dataset_depth 0 \
 --max_dataset_depth 100.0 \

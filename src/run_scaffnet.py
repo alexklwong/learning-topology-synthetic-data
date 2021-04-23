@@ -190,7 +190,8 @@ with tf.Graph().as_default():
         ground_truth_paths=sparse_depth_paths,
         depth_load_multiplier=args.depth_load_multiplier,
         do_crop=False,
-        random_crop=False,
+        random_horizontal_crop=False,
+        random_vettical_crop=False,
         random_horizontal_flip=False)
 
     time_start = time.time()

@@ -7,7 +7,6 @@ export CUDA_VISIBLE_DEVICES=1
 # $3 : increment between checkpoints
 # $4 : last checkpoint to evaluate
 
-# for n in $(seq 100000 5000 200000)
 for n in $(seq $2 $3 $4)
 do
 python src/run_scaffnet.py \

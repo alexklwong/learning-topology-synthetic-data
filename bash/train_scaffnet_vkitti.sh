@@ -12,7 +12,7 @@ python src/train_scaffnet.py \
 --depth_load_multiplier 256 \
 --min_dataset_depth 1.5 \
 --max_dataset_depth 80.0 \
---augment_random_crop \
+--augmentation_random_horizontal_crop \
 --n_epoch 50 \
 --learning_rates 4.00e-4 3.00e-4 2.00e-4 1.00e-4 \
 --learning_schedule 8 20 30 \
