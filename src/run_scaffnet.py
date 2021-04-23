@@ -191,7 +191,7 @@ with tf.Graph().as_default():
         depth_load_multiplier=args.depth_load_multiplier,
         do_crop=False,
         random_horizontal_crop=False,
-        random_vettical_crop=False,
+        random_vertical_crop=False,
         random_horizontal_flip=False)
 
     time_start = time.time()
