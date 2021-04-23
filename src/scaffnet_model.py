@@ -129,7 +129,7 @@ class ScaffNetModel(object):
 
         # Forward through network
         if network_type == 'scaffnet16':
-            self.output_depth = networks.connet16(
+            self.output_depth = networks.scaffnet16(
                 input_depth,
                 n_output=1,
                 activation_fn=activation_fn,
@@ -139,7 +139,7 @@ class ScaffNetModel(object):
                 n_convolution_spp=n_convolution_spp,
                 n_filter_spp=n_filter_spp)
         elif network_type == 'scaffnet32':
-            self.output_depth = networks.connet32(
+            self.output_depth = networks.scaffnet32(
                 input_depth,
                 n_output=1,
                 activation_fn=activation_fn,
@@ -177,7 +177,8 @@ class ScaffNetModel(object):
             tf.summary.scalar('loss', loss)
             tf.summary.histogram('sparse_depth_distro', self.sparse_depth)
             tf.summary.histogram('ground_truth_distro', self.ground_truth)
-            tf.summary.histogram('output_depth_distro', self.output_depth[-1])
+            tf.summary.histogram('output_depth_distro', self.output_depth)
+            tf.summary.histogram('validity_map_distro', self.validity_map_sparse_depth)
 
             loss_sparse_depth = losses.l1_loss_func(
                 src=self.predict,
