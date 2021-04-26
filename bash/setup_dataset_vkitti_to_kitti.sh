@@ -31,7 +31,7 @@ testing/kitti/kitti_test_validity_map.txt \
 --train_output_depth_path \
 training/kitti/kitti_train_predict_depth-clean.txt \
 --val_output_depth_path \
-validation/kitti/kitti_val_predict_depth-clean.txt \
+validation/kitti/kitti_val_predict_depth.txt \
 --test_output_depth_path \
-testing/kitti/kitti_test_predict_depth-clean.txt \
+testing/kitti/kitti_test_predict_depth.txt \
 --n_thread 2
