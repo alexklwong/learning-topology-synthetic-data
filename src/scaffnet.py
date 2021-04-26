@@ -178,18 +178,21 @@ def train(train_sparse_depth_path,
         log('Batch settings:', log_path)
         log('n_batch=%d  n_height=%d  n_width=%d' %
             (n_batch, n_height, n_width), log_path)
+        log('', log_path)
 
         log('Dataloader settings:', log_path)
         log('depth_load_multiplier=%.2f' %
             (depth_load_multiplier), log_path)
         log('min_dataset_depth=%.2f  max_dataset_depth=%.2f' %
             (min_dataset_depth, max_dataset_depth), log_path)
+        log('', log_path)
 
         log('Augmentation settings:', log_path)
         log('random_horizontal_crop=%s  random_vertical_crop=%s' %
             (augmentation_random_horizontal_crop, augmentation_random_vertical_crop), log_path)
         log('random_horizontal_flip=%s' %
             (augmentation_random_horizontal_flip), log_path)
+        log('', log_path)
 
         log('Training settings:', log_path)
         log('n_sample=%d  n_epoch=%d  n_step=%d' %
@@ -202,6 +205,7 @@ def train(train_sparse_depth_path,
                 [0] + learning_schedule, [0] + learning_schedule_steps, learning_rates)),
             n_epoch,
             n_train_step), log_path)
+        log('', log_path)
 
         log('Network settings:', log_path)
         log('network_type=%s  n_parameter=%d' %
@@ -214,18 +218,21 @@ def train(train_sparse_depth_path,
             (', '.join([str(i) for i in pool_kernel_sizes_spp]),
             n_convolution_spp,
             n_filter_spp), log_path)
+        log('', log_path)
 
         log('Depth range settings:', log_path)
         log('min_predict_depth=%.2f  max_predict_depth=%.2f' %
             (min_predict_depth, max_predict_depth), log_path)
         log('min_evaluate_depth=%.2f  max_evaluate_depth=%.2f' %
             (min_evaluate_depth, max_evaluate_depth), log_path)
+        log('', log_path)
 
         log('Checkpoint settings:', log_path)
         log('checkpoint_path=%s' %
             (checkpoint_path), log_path)
         log('restore_path=%s' %
             ('None' if restore_path == '' else restore_path), log_path)
+        log('', log_path)
 
         # Initialize Tensorflow session
         config = tf.ConfigProto(allow_soft_placement=True)

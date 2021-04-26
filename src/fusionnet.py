@@ -9,7 +9,7 @@ import global_constants as settings
 import data_utils, eval_utils
 from fusionnet_dataloader import FusionNetDataloader
 from fusionnet_model import FusionNetModel
-from data_utils import log
+from log_utils import log
 
 
 def train(train_image_path,
@@ -51,6 +51,8 @@ def train(train_image_path,
           output_func_residual=settings.OUTPUT_FUNC_RESIDUAL_FUSIONNET,
           output_func_scale=settings.OUTPUT_FUNC_SCALE_FUSIONNET,
           # Depth prediction settings
+          min_predict_depth=settings.MIN_PREDICT_DEPTH,
+          max_predict_depth=settings.MAX_PREDICT_DEPTH,
           min_scale_depth=settings.MIN_SCALE_DEPTH,
           max_scale_depth=settings.MAX_SCALE_DEPTH,
           min_residual_depth=settings.MIN_RESIDUAL_DEPTH,
@@ -185,6 +187,8 @@ def train(train_image_path,
             activation_func=activation_func,
             output_func_residual=output_func_residual,
             output_func_scale=output_func_scale,
+            min_predict_depth=min_predict_depth,
+            max_predict_depth=max_predict_depth,
             min_scale_depth=min_scale_depth,
             max_scale_depth=max_scale_depth,
             min_residual_depth=min_residual_depth,
@@ -213,16 +217,19 @@ def train(train_image_path,
         log('Batch settings:')
         log('n_batch=%d  n_height=%d  n_width=%d' %
             (n_batch, n_height, n_width), log_path)
+        log('', log_path)
 
         log('Dataloader settings:', log_path)
         log('depth_load_multiplier=%.2f' %
             (depth_load_multiplier), log_path)
         log('crop_type=%s' %
             (crop_type), log_path)
+        log('', log_path)
 
         log('Augmentation settings:', log_path)
         log('random_horizontal_crop=%s  random_vertical_crop=%s' %
             (augmentation_random_horizontal_crop, augmentation_random_vertical_crop), log_path)
+        log('', log_path)
 
         log('Network settings:', log_path)
         log('network_type=%s  n_parameter=%d' %
@@ -231,16 +238,21 @@ def train(train_image_path,
             (image_filter_pct, depth_filter_pct), log_path)
         log('activation_func=%s  output_func_residual=%s  output_func_scale=%s' %
             (activation_func, output_func_residual, output_func_scale), log_path)
+        log('', log_path)
 
         log('Depth prediction settings:', log_path)
+        log('min_predict_depth=%.2f  max_predict_depth=%.2f' %
+            (min_predict_depth, max_predict_depth), log_path)
         log('min_scale_depth=%.2f  max_scale_depth=%.2f' %
             (min_scale_depth, max_scale_depth), log_path)
         log('min_residual_depth=%.2f  max_residual_depth=%.2f' %
             (min_residual_depth, max_residual_depth), log_path)
+        log('', log_path)
 
         log('Depth evaluation settings:', log_path)
         log('min_evaluate_depth=%.2f  max_evaluate_depth=%.2f' %
             (min_evaluate_depth, max_evaluate_depth), log_path)
+        log('', log_path)
 
         log('Training settings:', log_path)
         log('n_sample=%d  n_epoch=%d  n_step=%d' %
@@ -261,12 +273,14 @@ def train(train_image_path,
             (residual_threshold_prior_depth), log_path)
         log('rotation_param=%s' %
             (rotation_param), log_path)
+        log('', log_path)
 
         log('Checkpoint settings:', log_path)
         log('checkpoint_path=%s' %
             (checkpoint_path), log_path)
         log('restore_path=%s' %
             ('None' if restore_path == '' else restore_path), log_path)
+        log('', log_path)
 
         # Initialize Tensorflow session
         config = tf.ConfigProto(allow_soft_placement=True)

@@ -178,19 +178,18 @@ class FusionNetDataloader(object):
                 self.center_crop_placeholder,
                 lambda: tf.to_int32(tf.to_float(shape[0] - self.n_height) / tf.to_float(2.0)),
                 lambda: tf.to_int32(shape[0] - self.n_height))
-            end_height = self.n_height + start_height
 
             start_width = tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0)
 
             # If we allow augmentation then do random horizontal or vertical shift for crop
             start_height = tf.cond(
                 tf.math.logical_and(self.center_crop_placeholder, random_vertical_crop),
-                lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * start_height), dtype=tf.int32),
+                lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * tf.to_float(start_height)), dtype=tf.int32),
                 lambda: tf.to_int32(start_height))
 
             start_height = tf.cond(
                 tf.math.logical_and(self.bottom_crop_placeholder, random_vertical_crop),
-                lambda: tf.cast(tf.random_uniform([], 0.0, start_height), dtype=tf.int32),
+                lambda: tf.cast(tf.random_uniform([], 0.0, tf.to_float(start_height)), dtype=tf.int32),
                 lambda: tf.to_int32(start_height))
 
             end_height = self.n_height + start_height

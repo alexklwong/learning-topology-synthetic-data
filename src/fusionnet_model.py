@@ -1,6 +1,6 @@
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-import networks, loss_utils, losses, net_utils
+import networks, loss_utils, losses, log_utils, net_utils
 import global_constants as settings
 
 
@@ -21,6 +21,8 @@ class FusionNetModel(object):
                  output_func_residual=settings.OUTPUT_FUNC_RESIDUAL_FUSIONNET,
                  output_func_scale=settings.OUTPUT_FUNC_SCALE_FUSIONNET,
                  # Depth prediction settings
+                 min_predict_depth=settings.MIN_PREDICT_DEPTH,
+                 max_predict_depth=settings.MAX_PREDICT_DEPTH,
                  min_scale_depth=settings.MIN_SCALE_DEPTH,
                  max_scale_depth=settings.MAX_SCALE_DEPTH,
                  min_residual_depth=settings.MIN_RESIDUAL_DEPTH,
@@ -43,6 +45,8 @@ class FusionNetModel(object):
         self.prior_depth = tf.expand_dims(input_depth[..., 0], axis=-1)
 
         # Depth prediction range
+        self.min_predict_depth = min_predict_depth
+        self.max_predict_depth = max_predict_depth
         self.min_scale_depth = min_scale_depth
         self.max_scale_depth = max_scale_depth
         self.min_residual_depth = min_residual_depth
@@ -173,12 +177,10 @@ class FusionNetModel(object):
 
         # Set scale between min and max scale depth
         if output_func_scale == 'linear':
-            # Clip between min and max scale
-            self.output_scale = tf.clip_by_value(
-                self.output_scale,
-                clip_value_min=min_scale_depth,
-                clip_value_max=max_scale_depth)
 
+            self.output_scale = \
+                (max_scale_depth - min_scale_depth) * self.output_scale + min_scale_depth
+            
         elif output_func_scale == 'sigmoid':
             # Constrain between min and max scale
             self.output_scale = output_fn_scale(self.output_scale)
@@ -287,9 +289,7 @@ class FusionNetModel(object):
         loss_sparse_depth = losses.sparse_depth_loss_func(
             self.output_depth,
             self.sparse_depth,
-            self.validity_map_sparse_depth,
-            normalize=self.normalize_loss_sparse_depth,
-            min_z=self.min_predict_depth)
+            self.validity_map_sparse_depth)
 
         # Construct smoothness loss
         loss_smoothness = \
@@ -335,9 +335,7 @@ class FusionNetModel(object):
             loss_prior_depth = losses.prior_depth_loss_func(
                 self.output_depth,
                 self.prior_depth,
-                w,
-                normalize=self.normalize_loss_prior_depth,
-                min_z=self.min_predict_depth)
+                w)
         else:
             loss_prior_depth = 0.0
 
@@ -381,17 +379,17 @@ class FusionNetModel(object):
                 'image0_output_prior_delta',
                 tf.concat([
                     self.image0,
-                    net_utils.gray2color(
+                    log_utils.gray2color(
                         self.output_depth,
                         'viridis',
                         vmin=self.min_predict_depth,
                         vmax=self.max_predict_depth),
-                    net_utils.gray2color(
+                    log_utils.gray2color(
                         self.prior_depth,
                         'viridis',
                         vmin=self.min_predict_depth,
                         vmax=self.max_predict_depth),
-                    net_utils.gray2color(
+                    log_utils.gray2color(
                         self.delta_depth,
                         'cividis',
                         vmin=0.80,
