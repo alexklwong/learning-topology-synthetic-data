@@ -38,7 +38,6 @@ def train(train_sparse_depth_path,
           # Network architecture
           network_type=settings.NETWORK_TYPE_SCAFFNET,
           activation_func=settings.ACTIVATION_FUNC,
-          output_func=settings.OUTPUT_FUNC_SCAFFNET,
           n_filter_output=settings.N_FILTER_OUTPUT_SCAFFNET,
           # Spatial pyramid pooling
           pool_kernel_sizes_spp=settings.POOL_KERNEL_SIZES_SPP,
@@ -151,7 +150,6 @@ def train(train_sparse_depth_path,
             is_training=True,
             network_type=network_type,
             activation_func=activation_func,
-            output_func=output_func,
             n_filter_output=n_filter_output,
             pool_kernel_sizes_spp=pool_kernel_sizes_spp,
             n_convolution_spp=n_convolution_spp,
@@ -210,8 +208,8 @@ def train(train_sparse_depth_path,
         log('Network settings:', log_path)
         log('network_type=%s  n_parameter=%d' %
             (network_type, n_parameter), log_path)
-        log('activation_func=%s  output_func=%s' %
-            (activation_func, output_func), log_path)
+        log('activation_func=%s' %
+            (activation_func), log_path)
         log('n_filter_output=%s' %
             (str(n_filter_output) if n_filter_output > 0 else 'upsample'), log_path)
         log('pool_kernel_sizes_spp=[%s]  n_convolution_spp=%d  n_filter_spp=%d' %

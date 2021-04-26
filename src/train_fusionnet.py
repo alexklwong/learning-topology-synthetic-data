@@ -26,7 +26,7 @@ parser.add_argument('--val_ground_truth_path',
 parser.add_argument('--depth_load_multiplier',
     type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
 parser.add_argument('--crop_type',
-    type=str, default='bottom', help='Crop to perform when loading data')
+    type=str, default=settings.CROP_TYPE, help='Crop to perform when loading data')
 parser.add_argument('--augmentation_random_horizontal_crop',
     action='store_true', help='If set, perform random crop in horizontal direction for augmentation')
 parser.add_argument('--augmentation_random_vertical_crop',
@@ -47,7 +47,7 @@ parser.add_argument('--n_epoch',
     type=int, default=settings.N_EPOCH, help='Total number of epochs to train')
 # Loss function settings
 parser.add_argument('--validity_map_color',
-    type=str, default='nonsparse', help='Determines where to compute photometric loss')
+    type=str, default=settings.VALIDITY_MAP_COLOR, help='Determines where to compute photometric loss')
 parser.add_argument('--w_color',
     type=float, default=settings.W_COLOR, help='Weight of color consistency')
 parser.add_argument('--w_structure',
@@ -71,10 +71,6 @@ parser.add_argument('--depth_filter_pct',
     type=float, default=settings.DEPTH_FILTER_PCT, help='Percentage of filters to use for depth branch')
 parser.add_argument('--activation_func',
     type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
-parser.add_argument('--output_func_residual',
-    type=str, default=settings.OUTPUT_FUNC_RESIDUAL_FUSIONNET, help='Residual output function for network')
-parser.add_argument('--output_func_scale',
-    type=str, default=settings.OUTPUT_FUNC_SCALE_FUSIONNET, help='Scale output function for network')
 # Depth prediction settings
 parser.add_argument('--min_scale_depth',
     type=float, default=settings.MIN_SCALE_DEPTH, help='Minimum depth scale value')
@@ -154,9 +150,9 @@ if __name__ == '__main__':
           image_filter_pct=args.image_filter_pct,
           depth_filter_pct=args.depth_filter_pct,
           activation_func=args.activation_func,
-          output_func_residual=args.output_func_residual,
-          output_func_scale=args.output_func_scale,
           # Depth prediction settings
+          min_predict_depth=args.min_depth_depth,
+          max_predict_depth=args.max_predict_depth,
           min_scale_depth=args.min_scale_depth,
           max_scale_depth=args.max_scale_depth,
           min_residual_depth=args.min_residual_depth,

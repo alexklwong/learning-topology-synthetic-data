@@ -18,8 +18,6 @@ class FusionNetModel(object):
                  image_filter_pct=settings.IMAGE_FILTER_PCT,
                  depth_filter_pct=settings.DEPTH_FILTER_PCT,
                  activation_func=settings.ACTIVATION_FUNC,
-                 output_func_residual=settings.OUTPUT_FUNC_RESIDUAL_FUSIONNET,
-                 output_func_scale=settings.OUTPUT_FUNC_SCALE_FUSIONNET,
                  # Depth prediction settings
                  min_predict_depth=settings.MIN_PREDICT_DEPTH,
                  max_predict_depth=settings.MAX_PREDICT_DEPTH,
@@ -28,7 +26,7 @@ class FusionNetModel(object):
                  min_residual_depth=settings.MIN_RESIDUAL_DEPTH,
                  max_residual_depth=settings.MAX_RESIDUAL_DEPTH,
                  # Loss function
-                 validity_map_color='nonsparse',
+                 validity_map_color=settings.VALIDITY_MAP_COLOR,
                  w_color=settings.W_COLOR,
                  w_structure=settings.W_STRUCTURE,
                  w_sparse_depth=settings.W_SPARSE_DEPTH,
@@ -126,44 +124,19 @@ class FusionNetModel(object):
         else:
             raise ValueError('Unsupported activation function: {}'.format(activation_func))
 
-        # Select residual output function
-        if output_func_residual == 'identity' or output_func_residual == 'linear':
-            output_func_residual = 'linear'
-            output_fn_residual = tf.identity
-        elif output_func_residual == 'sigmoid':
-            output_fn_residual = tf.nn.sigmoid
-        else:
-            raise ValueError('Unsupported residual output function: {}'.format(output_func_residual))
-
-        # Select scale output function
-        if output_func_scale == 'identity' or output_func_scale == 'linear':
-            output_func_scale = 'linear'
-            output_fn_scale = tf.identity
-        elif output_func_scale == 'sigmoid':
-            output_fn_scale = tf.nn.sigmoid
-        else:
-            raise ValueError('Unsupported scale output function: {}'.format(output_func_scale))
-
-        # Outputs include scale and residual
-        n_output = 2
-
         # Forward through network
-        if network_type == 'vggnet08':
-            self.output_depth = networks.vggnet08(
+        if network_type == 'fusionnet05':
+            self.output_depth = networks.fusionnet05(
                 image0,
                 input_depth,
-                n_output=n_output,
                 activation_fn=activation_fn,
-                output_fn=tf.identity,
                 image_filter_pct=image_filter_pct,
                 depth_filter_pct=depth_filter_pct)[-1]
-        elif network_type == 'vggnet11':
-            self.output_depth = networks.vggnet11(
+        elif network_type == 'fusionnet08':
+            self.output_depth = networks.fusionnet08(
                 image0,
                 input_depth,
-                n_output=n_output,
                 activation_fn=activation_fn,
-                output_fn=tf.identity,
                 image_filter_pct=image_filter_pct,
                 depth_filter_pct=depth_filter_pct)[-1]
         else:
@@ -176,36 +149,14 @@ class FusionNetModel(object):
             tf.expand_dims(self.output_depth[..., 1], axis=-1)
 
         # Set scale between min and max scale depth
-        if output_func_scale == 'linear':
-
-            self.output_scale = \
-                (max_scale_depth - min_scale_depth) * self.output_scale + min_scale_depth
-            
-        elif output_func_scale == 'sigmoid':
-            # Constrain between min and max scale
-            self.output_scale = output_fn_scale(self.output_scale)
-
-            self.output_scale = \
-                (max_scale_depth - min_scale_depth) * self.output_scale + min_scale_depth
-        else:
-            raise ValueError('Unsupported scale output function: {}'.format(output_func_scale))
+        self.output_scale = \
+            (max_scale_depth - min_scale_depth) * self.output_scale + min_scale_depth
 
         # Set residual between min and max residual depth
-        if output_func_residual == 'linear':
-            # Clip between min and max residual
-            self.output_residual = tf.clip_by_value(
-                self.output_residual,
-                clip_value_min=min_residual_depth,
-                clip_value_max=max_residual_depth)
-
-        elif output_func_residual == 'sigmoid':
-            # Constrain between min and max scale
-            self.output_residual = output_fn_residual(self.output_residual)
-
-            self.output_residual = \
-                (max_residual_depth - min_residual_depth) * self.output_residual + min_residual_depth
-        else:
-            raise ValueError('Unsupported residual output function: {}'.format(output_func_residual))
+        self.output_residual = tf.clip_by_value(
+            self.output_residual,
+            clip_value_min=min_residual_depth,
+            clip_value_max=max_residual_depth)
 
         # Multiply by scale and add residual: \alpha(x) d(x) + \beta(x)
         self.output_depth = self.output_scale * self.prior_depth + self.output_residual

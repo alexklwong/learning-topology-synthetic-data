@@ -236,7 +236,6 @@ def posenet(data, is_training):
             return 0.01 * tf.reshape(pose_mean, [-1, 6])
 
 def scaffnet16(depth,
-               n_output=1,
                activation_fn=tf.nn.relu,
                output_fn=tf.identity,
                n_filter_output=0,
@@ -249,8 +248,6 @@ def scaffnet16(depth,
     Args:
         depth : tensor
             input sparse depth with validity map (N x H x W x 2)
-        n_output : int
-            number of output channels
         activation_fn : func
             activation function after convolution
         output_fn : func
@@ -288,7 +285,6 @@ def scaffnet16(depth,
             layers,
             skips,
             shape,
-            n_output=n_output,
             n_filters=n_filters,
             activation_fn=activation_fn,
             output_fn=output_fn,
@@ -297,7 +293,6 @@ def scaffnet16(depth,
         return outputs
 
 def scaffnet32(depth,
-               n_output=1,
                activation_fn=tf.nn.relu,
                output_fn=tf.identity,
                n_filter_output=0,
@@ -310,8 +305,6 @@ def scaffnet32(depth,
     Args:
         depth : tensor
             input sparse depth with validity map (N x H x W x 2)
-        n_output : int
-            number of output channels
         activation_fn : func
             activation function after convolution
         output_fn : func
@@ -349,7 +342,6 @@ def scaffnet32(depth,
             layers,
             skips,
             shape,
-            n_output=n_output,
             n_filters=n_filters,
             activation_fn=activation_fn,
             output_fn=output_fn,
@@ -357,24 +349,20 @@ def scaffnet32(depth,
 
         return outputs
 
-def vggnet08(image,
-             depth,
-             n_output=1,
-             activation_fn=tf.nn.relu,
-             output_fn=tf.identity,
-             image_filter_pct=0.75,
-             depth_filter_pct=0.25,
-             n_filter_dec0=0):
+def fusionnet05(image,
+                depth,
+                activation_fn=tf.nn.relu,
+                output_fn=tf.identity,
+                image_filter_pct=0.75,
+                depth_filter_pct=0.25):
     '''
-    Creates a VGG08 late fusion network
+    Creates a FusionNet with 5 layers in each encoder branch
 
     Args:
         image : tensor
             input image (N x H x W x D)
         depth : tensor
             input sdepth with validity map (N x H x W x 2)
-        n_output : int
-            number of output channels
         activation_fn : func
             activation function after convolution
         output_fn : func
@@ -383,16 +371,14 @@ def vggnet08(image,
             percent of parameters to allocate to the image branch
         depth_filter_pct : float
             percent of parameters to allocate to the depth branch
-        n_filter_dec0 : int
-            number of filters in decoder layer 0
     Returns:
         list[tensor] : list containing prediction and upsampled prediction at original resolution
     '''
 
-    with tf.variable_scope('vggnet08'):
+    with tf.variable_scope('fusionnet05'):
         shape = image.get_shape().as_list()[1:3]
 
-        layers, skips = vggnet_encoder(
+        layers, skips = fusionnet_encoder(
             image,
             depth,
             n_mod1=1,
@@ -404,35 +390,29 @@ def vggnet08(image,
             image_filter_pct=image_filter_pct,
             depth_filter_pct=depth_filter_pct)
 
-        layers, outputs = decoder(
+        layers, outputs = fusionnet_decoder(
             layers,
             skips,
             shape,
-            n_output=n_output,
-            n_filter_dec0=n_filter_dec0,
             activation_fn=activation_fn,
             output_fn=output_fn)
 
         return outputs
 
-def vggnet11(image,
-             depth,
-             n_output=1,
-             activation_fn=tf.nn.relu,
-             output_fn=tf.identity,
-             image_filter_pct=0.75,
-             depth_filter_pct=0.25,
-             n_filter_dec0=0):
+def fusionnet08(image,
+                depth,
+                activation_fn=tf.nn.relu,
+                output_fn=tf.identity,
+                image_filter_pct=0.75,
+                depth_filter_pct=0.25):
     '''
-    Creates a VGG11 late fusion network
+    Creates a FusionNet with 8 layers in each encoder branch
 
     Args:
         image : tensor
             input image (N x H x W x D)
         depth : tensor
             input sparse depth with validity map (N x H x W x 2)
-        n_output : int
-            number of output channels
         activation_fn : func
             activation function after convolution
         output_fn : func
@@ -441,15 +421,14 @@ def vggnet11(image,
             percent of parameters to allocate to the image branch
         depth_filter_pct : float
             percent of parameters to allocate to the depth branch
-        n_filter_dec0 : int
-            number of filters in decoder layer 0
     Returns:
         list[tensor] : list containing prediction and upsampled prediction at original resolution
     '''
-    with tf.variable_scope('vggnet11'):
+
+    with tf.variable_scope('fusionnet08'):
         shape = image.get_shape().as_list()[1:3]
 
-        layers, skips = vggnet_encoder(
+        layers, skips = fusionnet_encoder(
             image,
             depth,
             n_mod1=1,
@@ -461,12 +440,10 @@ def vggnet11(image,
             image_filter_pct=image_filter_pct,
             depth_filter_pct=depth_filter_pct)
 
-        layers, outputs = decoder(
+        layers, outputs = fusionnet_decoder(
             layers,
             skips,
             shape,
-            n_output=n_output,
-            n_filter_dec0=n_filter_dec0,
             activation_fn=activation_fn,
             output_fn=output_fn)
 
@@ -476,20 +453,20 @@ def vggnet11(image,
 '''
 Encoder architectures
 '''
-def vggnet_encoder(image,
-                   depth,
-                   n_mod1=1,
-                   n_mod2=2,
-                   n_mod3=2,
-                   n_mod4=2,
-                   n_mod5=2,
-                   image_filter_pct=0.75,
-                   depth_filter_pct=0.25,
-                   activation_fn=tf.nn.relu,
-                   reuse_vars=tf.AUTO_REUSE):
+def fusionnet_encoder(image,
+                      depth,
+                      n_mod1=1,
+                      n_mod2=2,
+                      n_mod3=2,
+                      n_mod4=2,
+                      n_mod5=2,
+                      image_filter_pct=0.75,
+                      depth_filter_pct=0.25,
+                      activation_fn=tf.nn.relu,
+                      reuse_vars=tf.AUTO_REUSE):
     '''
-    Creates an early or late fusion (two branches, one for image and the other for depth)
-    VGGnet encoder with 5 VGG blocks each with resolution 1 -> 1/32
+    Creates a two branch encoder (one for image and the other for depth)
+    with resolution from 1 to 1/32
 
     Args:
         image : tensor
@@ -526,7 +503,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='im')
+            name='image')
 
         enc1_conv_depth = vgg2d(
             depth,
@@ -535,7 +512,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='zv')
+            name='depth')
 
         layers.append(enc1_conv_depth)
         layers.append(enc1_conv_image)
@@ -551,7 +528,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='im')
+            name='image')
 
         enc2_conv_depth = vgg2d(
             layers[-2],
@@ -560,7 +537,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='zv')
+            name='depth')
 
         layers.append(enc2_conv_depth)
         layers.append(enc2_conv_image)
@@ -576,7 +553,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='im')
+            name='image')
 
         enc3_conv_depth = vgg2d(
             layers[-2],
@@ -585,7 +562,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='zv')
+            name='depth')
 
         layers.append(enc3_conv_depth)
         layers.append(enc3_conv_image)
@@ -601,7 +578,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='im')
+            name='image')
 
         enc4_conv_depth = vgg2d(
             layers[-2],
@@ -610,7 +587,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='zv')
+            name='depth')
 
         layers.append(enc4_conv_depth)
         layers.append(enc4_conv_image)
@@ -626,7 +603,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='im')
+            name='image')
 
         enc5_conv_depth = vgg2d(
             layers[-2],
@@ -635,7 +612,7 @@ def vggnet_encoder(image,
             padding=padding,
             activation_fn=activation_fn,
             reuse=reuse_vars,
-            name='zv')
+            name='depth')
 
         layers.append(tf.concat([enc5_conv_depth, enc5_conv_image], axis=-1))
 
@@ -654,7 +631,7 @@ def scaffnet_encoder(depth,
                      n_filter_spp=32,
                      reuse_vars=tf.AUTO_REUSE):
     '''
-    Creates Scaffnet encoder with resolution 1 -> 1/32
+    Creates Scaffnet encoder with resolution from 1 to 1/32
 
     Args:
         depth : tensor
@@ -786,17 +763,14 @@ def scaffnet_encoder(depth,
 '''
 Decoder architectures
 '''
-def decoder(layer,
-            skips,
-            shape,
-            n_output=1,
-            n_filter_dec0=0,
-            activation_fn=tf.nn.relu,
-            output_fn=tf.identity,
-            reuse_vars=tf.AUTO_REUSE):
+def fusionnet_decoder(layer,
+                      skips,
+                      shape,
+                      activation_fn=tf.nn.relu,
+                      output_fn=tf.identity,
+                      reuse_vars=tf.AUTO_REUSE):
     '''
-    Creates a decoder with up-convolves the latent representation to 5 times the
-    resolution from 1/32 -> 1
+    Creates a decoder with up-convolutions to bring resolution from 1/32 to 1
 
     Args:
         layer : tensor (or list[tensor])
@@ -806,10 +780,6 @@ def decoder(layer,
             list of skip connections
         shape : list[int]
             [H W] list of dimensions for the final output
-        n_output : int
-            number of channels in output
-        n_filter_dec0 : int
-            number of filters in decoder layer 0
         activation_fn : func
             activation function after convolution
         output_fn : func
@@ -927,153 +897,54 @@ def decoder(layer,
         # Concatenate with skip connection
         layers.append(tf.concat([dec1_upconv, skips[0]], axis=-1))
 
-        if n_filter_dec0 > 0:
-            # Convolve again
-            dec1_conv = slim.conv2d(
-                layers[-1],
-                num_outputs=kernel_size[2],
-                kernel_size=kernel_size[0:2],
-                stride=1,
-                activation_fn=activation_fn,
-                padding=padding,
-                reuse=reuse_vars,
-                scope='conv1')
+        dec1_output_scale = slim.conv2d(
+            layers[-1],
+            num_outputs=1,
+            kernel_size=kernel_size[0:2],
+            stride=1,
+            activation_fn=tf.nn.sigmoid,
+            padding=padding,
+            reuse=reuse_vars,
+            scope='output_scale')
 
-            layers.append(dec1_conv)
-        else:
-            # Convolve again
-            if n_output == 1:
-                dec1_output = slim.conv2d(
-                    layers[-1],
-                    num_outputs=n_output,
-                    kernel_size=kernel_size[0:2],
-                    stride=1,
-                    activation_fn=output_fn,
-                    padding=padding,
-                    reuse=reuse_vars,
-                    scope='output')
+        dec1_output_residual = slim.conv2d(
+            layers[-1],
+            num_outputs=1,
+            kernel_size=kernel_size[0:2],
+            stride=1,
+            activation_fn=output_fn,
+            padding=padding,
+            reuse=reuse_vars,
+            scope='output_residual')
 
-                outputs.append(dec1_output)
-            elif n_output == 2:
-                dec1_output_scale = slim.conv2d(
-                    layers[-1],
-                    num_outputs=1,
-                    kernel_size=kernel_size[0:2],
-                    stride=1,
-                    activation_fn=tf.nn.sigmoid,
-                    padding=padding,
-                    reuse=reuse_vars,
-                    scope='scale_output')
+        dec1_output = tf.concat([
+            dec1_output_scale,
+            dec1_output_residual],
+            axis=-1)
 
-                dec1_output_residual = slim.conv2d(
-                    layers[-1],
-                    num_outputs=1,
-                    kernel_size=kernel_size[0:2],
-                    stride=1,
-                    activation_fn=output_fn,
-                    padding=padding,
-                    reuse=reuse_vars,
-                    scope='residual_output')
-
-                dec1_output = tf.concat([
-                    dec1_output_scale,
-                    dec1_output_residual],
-                    axis=-1)
-
-                outputs.append(dec1_output)
+        outputs.append(dec1_output)
 
     with tf.variable_scope('dec0', reuse=reuse_vars):
-        if n_filter_dec0 > 0:
-            kernel_size = [3, 3, n_filter_dec0]
+        # Perform up-sampling to original resolution
+        dec0_output = tf.reshape(
+            tf.image.resize_nearest_neighbor(outputs[-1], shape),
+            [-1, shape[0], shape[1], 2])
 
-            # Predict at original resolution
-            dec0_upconv = upconv2d(
-                layers[-1],
-                shape=shape,
-                kernel_size=kernel_size,
-                stride=1,
-                activation_fn=activation_fn,
-                reuse=tf.AUTO_REUSE,
-                name='upconv')
-
-            layers.append(dec0_upconv)
-
-            dec0_conv = slim.conv2d(
-                layers[-1],
-                num_outputs=kernel_size[2],
-                kernel_size=kernel_size[0:2],
-                stride=1,
-                activation_fn=activation_fn,
-                padding=padding,
-                reuse=reuse_vars,
-                scope='conv1')
-
-            layers.append(dec0_conv)
-
-            if n_output == 1:
-                dec0_output = slim.conv2d(
-                    layers[-1],
-                    num_outputs=n_output,
-                    kernel_size=kernel_size[0:2],
-                    stride=1,
-                    activation_fn=output_fn,
-                    padding=padding,
-                    reuse=reuse_vars,
-                    scope='output')
-
-                outputs.append(dec0_output)
-
-            elif n_output == 2:
-                dec0_output_scale = slim.conv2d(
-                    layers[-1],
-                    num_outputs=1,
-                    kernel_size=kernel_size[0:2],
-                    stride=1,
-                    activation_fn=tf.nn.sigmoid,
-                    padding=padding,
-                    reuse=reuse_vars,
-                    scope='scale_output')
-
-                dec0_output_residual = slim.conv2d(
-                    layers[-1],
-                    num_outputs=1,
-                    kernel_size=kernel_size[0:2],
-                    stride=1,
-                    activation_fn=output_fn,
-                    padding=padding,
-                    reuse=reuse_vars,
-                    scope='residual_output')
-
-                dec0_output = tf.concat([
-                    dec0_output_scale,
-                    dec0_output_residual],
-                    axis=-1)
-
-                outputs.append(dec0_output)
-
-        else:
-            # Perform up-sampling to original resolution
-            dec0_output = tf.reshape(
-                tf.image.resize_nearest_neighbor(outputs[-1], shape),
-                [-1, shape[0], shape[1], n_output])
-
-            layers.append(dec0_output)
-            outputs.append(dec0_output)
+        layers.append(dec0_output)
+        outputs.append(dec0_output)
 
     return layers, outputs
 
 def scaffnet_decoder(layer,
                      skips,
                      shape,
-                     n_output=1,
                      n_filters=[32, 64, 96, 128, 196],
                      activation_fn=tf.nn.relu,
                      output_fn=tf.identity,
                      n_filter_output=0,
                      reuse_vars=tf.AUTO_REUSE):
     '''
-    Creates a decoder with up-convolves the latent representation to 5 times the
-    resolution from 1/32 -> 1
+    Creates a decoder with up-convolutions to bring resolution from 1/32 to 1
 
     Args:
         layer : tensor (or list[tensor])
@@ -1083,8 +954,6 @@ def scaffnet_decoder(layer,
             list of skip connections
         shape : list[int]
             [H W] list of dimensions for the final output
-        n_output : int
-            number of channels in output
         n_filters : float
             filters for each module
         activation_fn : func
@@ -1104,6 +973,7 @@ def scaffnet_decoder(layer,
 
     outputs = []
     padding = 'SAME'
+
     n = len(skips)-1
 
     with tf.variable_scope('dec4', reuse=reuse_vars):
@@ -1135,6 +1005,7 @@ def scaffnet_decoder(layer,
         layers.append(dec4_conv)
 
     n = n - 1
+
     with tf.variable_scope('dec3', reuse=reuse_vars):
         kernel_size = [3, 3, n_filters[2]]
 
@@ -1165,6 +1036,7 @@ def scaffnet_decoder(layer,
         layers.append(dec3_conv)
 
     n = n - 1
+
     with tf.variable_scope('dec2', reuse=reuse_vars):
         kernel_size = [3, 3, n_filters[1]]
 
@@ -1195,6 +1067,7 @@ def scaffnet_decoder(layer,
         layers.append(dec2_conv)
 
     n = n - 1
+
     with tf.variable_scope('dec1', reuse=reuse_vars):
         kernel_size = [3, 3, n_filters[1]]
 
@@ -1227,7 +1100,7 @@ def scaffnet_decoder(layer,
         else:
             dec1_output = slim.conv2d(
                 dec1_concat,
-                num_outputs=n_output,
+                num_outputs=1,
                 kernel_size=kernel_size[0:2],
                 stride=1,
                 activation_fn=output_fn,
@@ -1238,6 +1111,7 @@ def scaffnet_decoder(layer,
             outputs.append(dec1_output)
 
     n = n - 1
+
     with tf.variable_scope('dec0', reuse=reuse_vars):
         if n_filter_output > 0:
             kernel_size = [3, 3, n_filter_output]
@@ -1274,7 +1148,7 @@ def scaffnet_decoder(layer,
             # Predict at original resolution
             dec0_output = slim.conv2d(
                 dec0_conv,
-                num_outputs=n_output,
+                num_outputs=1,
                 kernel_size=kernel_size[0:2],
                 stride=1,
                 activation_fn=output_fn,

@@ -25,7 +25,6 @@ validation/kitti/kitti_val_ground_truth.txt \
 --max_dataset_depth 100.0 \
 --network_type scaffnet32 \
 --activation_func leaky_relu \
---output_func identity \
 --n_filter_output 32 \
 --pool_kernel_sizes_spp 5 7 9 11 \
 --n_convolution_spp 3 \

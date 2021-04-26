@@ -28,19 +28,19 @@ python src/train_fusionnet.py \
 --w_prior_depth 0.10 \
 --residual_threshold_prior_depth 0.40 \
 --rotation_param euler \
---network_type vggnet08 \
+--network_type fusionnet05 \
 --image_filter_pct 0.75 \
 --depth_filter_pct 0.25 \
 --activation_func leaky_relu \
---output_func_residual linear \
---output_func_scale sigmoid \
+--min_predict_depth 1.5 \
+--max_predict_depth 1.00 \
 --min_scale_depth 0.25 \
 --max_scale_depth 4.00 \
 --min_residual_depth -1000.0 \
 --max_residual_depth 1000.0 \
 --min_evaluate_depth 0.0 \
 --max_evaluate_depth 100.0 \
---checkpoint_path trained_fusionnet/kitti/vgg08_co20_st80_sz10_sm01_pz10_thresh40_reslin_minmax1k_scalesig_min025max400 \
+--checkpoint_path trained_fusionnet/kitti/fusionnet05 \
 --n_checkpoint 5000 \
 --n_summary 5000 \
 --n_thread 8

@@ -1,6 +1,3 @@
-'''
-Network parameters
-'''
 # Input image dimensions
 N_BATCH                             = 8
 N_HEIGHT                            = 320
@@ -9,6 +6,7 @@ N_CHANNEL                           = 3
 
 # Dataloader settings
 DEPTH_LOAD_MULTIPLIER               = 256.0
+CROP_TYPE                           = 'bottom'
 MIN_DATASET_DEPTH                   = 0.00
 MAX_DATASET_DEPTH                   = 655.00
 
@@ -21,7 +19,6 @@ ACTIVATION_FUNC                     = 'leaky_relu'
 
 # ScaffNet settings
 NETWORK_TYPE_SCAFFNET               = 'scaffnet32'
-OUTPUT_FUNC_SCAFFNET                = 'linear'
 N_FILTER_OUTPUT_SCAFFNET            = 0
 
 # Spatial pyramid pooling
@@ -40,8 +37,6 @@ W_SUPERVISED                        = 1.00
 NETWORK_TYPE_FUSIONNET              = 'vggnet08'
 IMAGE_FILTER_PCT                    = 0.75
 DEPTH_FILTER_PCT                    = 0.25
-OUTPUT_FUNC_RESIDUAL_FUSIONNET      = 'linear'
-OUTPUT_FUNC_SCALE_FUSIONNET         = 'sigmoid'
 
 # FusionNet depth prediction settings
 MIN_SCALE_DEPTH                     = 0.25
@@ -56,6 +51,7 @@ LEARNING_SCHEDULE                   = [0.60, 0.80]
 LOSS_FUNC_SCAFFNET                  = 'l1_norm'
 
 # FusionNet loss function
+VALIDITY_MAP_COLOR                  = 'nonsparse'
 W_COLOR                             = 0.20
 W_STRUCTURE                         = 0.80
 W_SMOOTHNESS                        = 0.01
@@ -68,15 +64,14 @@ ROTATION_PARAM                      = 'euler'
 MIN_EVALUATE_DEPTH                  = 0.0
 MAX_EVALUATE_DEPTH                  = 100.00
 
-'''
-Model checkpoints
-'''
+# Checkpoint settings
 N_CHECKPOINT                        = 5000
 N_SUMMARY                           = 500
 CHECKPOINT_PATH                     = 'log'
 RESTORE_PATH                        = ''
 
-'''
-Hardware settings
-'''
+# Hardware settings
 N_THREAD                            = 8
+
+# Miscellaneous
+EPSILON                             = 1e-10

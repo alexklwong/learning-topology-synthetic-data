@@ -47,7 +47,6 @@ class ScaffNetModel(object):
                  is_training=True,
                  network_type=settings.NETWORK_TYPE_SCAFFNET,
                  activation_func=settings.ACTIVATION_FUNC,
-                 output_func=settings.OUTPUT_FUNC_SCAFFNET,
                  n_filter_output=settings.N_FILTER_OUTPUT_SCAFFNET,
                  pool_kernel_sizes_spp=settings.POOL_KERNEL_SIZES_SPP,
                  n_convolution_spp=settings.N_CONVOLUTION_SPP,
@@ -119,21 +118,11 @@ class ScaffNetModel(object):
         else:
             raise ValueError('Invalid activation function: {}'.format(activation_func))
 
-        # Select output function for network
-        if output_func == 'identity' or output_func == 'linear':
-            output_fn = tf.identity
-        elif output_func == 'sigmoid':
-            output_fn = tf.nn.sigmoid
-        else:
-            raise ValueError('Invalid output function: {}'.format(output_func))
-
         # Forward through network
         if network_type == 'scaffnet16':
             self.output_depth = networks.scaffnet16(
                 input_depth,
-                n_output=1,
                 activation_fn=activation_fn,
-                output_fn=output_fn,
                 n_filter_output=n_filter_output,
                 pool_kernel_sizes_spp=pool_kernel_sizes_spp,
                 n_convolution_spp=n_convolution_spp,
@@ -141,19 +130,13 @@ class ScaffNetModel(object):
         elif network_type == 'scaffnet32':
             self.output_depth = networks.scaffnet32(
                 input_depth,
-                n_output=1,
                 activation_fn=activation_fn,
-                output_fn=output_fn,
                 n_filter_output=n_filter_output,
                 pool_kernel_sizes_spp=pool_kernel_sizes_spp,
                 n_convolution_spp=n_convolution_spp,
                 n_filter_spp=n_filter_spp)
 
         self.output_depth = self.output_depth[-1]
-
-        if output_func == 'sigmoid':
-            self.output_depth = \
-                self.min_predict_depth / (self.output_depth + self.min_predict_depth / self.max_predict_depth)
 
         # Prediction
         self.predict = self.output_depth

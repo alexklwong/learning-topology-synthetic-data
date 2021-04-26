@@ -52,8 +52,6 @@ parser.add_argument('--network_type',
     type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
 parser.add_argument('--activation_func',
     type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
-parser.add_argument('--output_func',
-    type=str, default=settings.OUTPUT_FUNC_SCAFFNET, help='Output function for network')
 parser.add_argument('--n_filter_output',
     type=int, default=settings.N_FILTER_OUTPUT_SCAFFNET, help='Number of filters to use in final full resolution output')
 # Spatial pyramid pooling
@@ -126,7 +124,6 @@ if __name__ == '__main__':
           # Network architecture
           network_type=args.network_type,
           activation_func=args.activation_func,
-          output_func=args.output_func,
           n_filter_output=args.n_filter_output,
           # Spatial pyramid pooling
           pool_kernel_sizes_spp=args.pool_kernel_sizes_spp,

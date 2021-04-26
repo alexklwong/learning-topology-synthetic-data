@@ -23,7 +23,7 @@ def train(train_image_path,
           val_ground_truth_path=None,
           # Dataloader settings
           depth_load_multiplier=settings.DEPTH_LOAD_MULTIPLIER,
-          crop_type='bottom',
+          crop_type=settings.CROP_TYPE,
           augmentation_random_horizontal_crop=False,
           augmentation_random_vertical_crop=False,
           # Batch settings
@@ -35,7 +35,7 @@ def train(train_image_path,
           learning_rates=settings.LEARNING_RATES,
           learning_schedule=settings.LEARNING_SCHEDULE,
           # Loss function settings
-          validity_map_color='nonsparse',
+          validity_map_color=settings.VALIDITY_MAP_COLOR,
           w_color=settings.W_COLOR,
           w_structure=settings.W_STRUCTURE,
           w_sparse_depth=settings.W_SPARSE_DEPTH,
@@ -48,8 +48,6 @@ def train(train_image_path,
           image_filter_pct=settings.IMAGE_FILTER_PCT,
           depth_filter_pct=settings.DEPTH_FILTER_PCT,
           activation_func=settings.ACTIVATION_FUNC,
-          output_func_residual=settings.OUTPUT_FUNC_RESIDUAL_FUSIONNET,
-          output_func_scale=settings.OUTPUT_FUNC_SCALE_FUSIONNET,
           # Depth prediction settings
           min_predict_depth=settings.MIN_PREDICT_DEPTH,
           max_predict_depth=settings.MAX_PREDICT_DEPTH,
@@ -185,8 +183,6 @@ def train(train_image_path,
             image_filter_pct=image_filter_pct,
             depth_filter_pct=depth_filter_pct,
             activation_func=activation_func,
-            output_func_residual=output_func_residual,
-            output_func_scale=output_func_scale,
             min_predict_depth=min_predict_depth,
             max_predict_depth=max_predict_depth,
             min_scale_depth=min_scale_depth,
@@ -236,8 +232,8 @@ def train(train_image_path,
             (network_type, n_parameter), log_path)
         log('image_filter_pct=%.2f  depth_filter_pct=%.2f' %
             (image_filter_pct, depth_filter_pct), log_path)
-        log('activation_func=%s  output_func_residual=%s  output_func_scale=%s' %
-            (activation_func, output_func_residual, output_func_scale), log_path)
+        log('activation_func=%s' %
+            (activation_func), log_path)
         log('', log_path)
 
         log('Depth prediction settings:', log_path)
