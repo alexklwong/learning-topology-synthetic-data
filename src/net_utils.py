@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def remove_outliers(sparse_depth, threshold=1.5, ksize=7):
+def remove_outliers(sparse_depth, threshold=1.5, kernel_size=7):
     '''
     Outlier removal by filtering those points with large distance discrepancy
 
@@ -10,7 +10,7 @@ def remove_outliers(sparse_depth, threshold=1.5, ksize=7):
             N x H x W x 1 sparse depth map
         threshold : float
             threshold to consider a point an outlier
-        ksize : int
+        kernel_size : int
             kernel size to use for filtering outliers
     Returns:
         tensor : N x H x W x 1 validity map
@@ -25,15 +25,16 @@ def remove_outliers(sparse_depth, threshold=1.5, ksize=7):
         sparse_depth)
 
     # Find the neighborhood minimum
-    n_pad = int(ksize/2)
+    n_pad = int(kernel_size / 2)
     sparse_depth_mod = tf.pad(
         sparse_depth_mod,
         paddings=[[0, 0], [n_pad, n_pad], [n_pad, n_pad], [0, 0]],
         mode='CONSTANT',
         constant_values=max_val)
 
-    patches = tf.extract_image_patches(sparse_depth_mod,
-        ksizes=[1, ksize, ksize, 1],
+    patches = tf.extract_image_patches(
+        sparse_depth_mod,
+        ksizes=[1, kernel_size, kernel_size, 1],
         strides=[1, 1, 1, 1],
         rates=[1, 1, 1, 1],
         padding='VALID')

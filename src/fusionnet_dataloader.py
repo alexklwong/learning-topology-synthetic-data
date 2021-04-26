@@ -12,7 +12,6 @@ class FusionNetDataloader(object):
     (3) image at time t + 1
     (4) input (predicted) depth with sparse depth at time t
     (5) 3 x 3 intrinsics matrix
-    (6) ground truth at time t
 
     Args:
         shape : list[int]
@@ -50,23 +49,20 @@ class FusionNetDataloader(object):
             self.sparse_depth_placeholder = tf.placeholder(tf.string, shape=[None])
             self.intrinsics_placeholder = tf.placeholder(tf.string, shape=[None])
 
-            # Set up ground truth placeholder for summary visualization
-            self.ground_truth_placeholder = tf.placeholder(tf.string, shape=[None])
-
             # Set up placeholder for loading depth
             self.depth_load_multiplier_placeholder = tf.placeholder(tf.float32, shape=())
 
             # Set up crop and data augmentation placeholders
             self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
             self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_crop_placeholder = tf.placeholder(tf.bool, shape=())
+            self.random_horizontal_crop_placeholder = tf.placeholder(tf.bool, shape=())
+            self.random_vertical_crop_placeholder = tf.placeholder(tf.bool, shape=())
 
             self.dataset = tf.data.Dataset.from_tensor_slices((
                 self.image_composite_placeholder,
                 self.input_depth_placeholder,
                 self.sparse_depth_placeholder,
-                self.intrinsics_placeholder,
-                self.ground_truth_placeholder))
+                self.intrinsics_placeholder))
 
             self.dataset = self.dataset \
                 .map(self._load_func, num_parallel_calls=self.n_thread) \
@@ -90,16 +86,12 @@ class FusionNetDataloader(object):
                 [self.n_batch, self.n_height, self.n_width, 2])
             # Camera intrinsics 3x3 matrix
             self.next_element[4].set_shape([self.n_batch, 3, 3])
-            # Semi dense ground-truth
-            self.next_element[5].set_shape(
-                [self.n_batch, self.n_height, self.n_width, 2])
 
     def _load_func(self,
                    image_composite_path,
                    input_depth_path,
                    sparse_depth_path,
-                   intrinsics_path,
-                   ground_truth_path):
+                   intrinsics_path):
         '''
         Load function for:
         (1) image at time t
@@ -107,7 +99,6 @@ class FusionNetDataloader(object):
         (3) image at time t + 1
         (4) input depth at time t
         (5) 3 x 3 intrinsics matrix
-        (6) ground truth at time t
 
         Args:
             image_composite_path : str
@@ -118,8 +109,6 @@ class FusionNetDataloader(object):
                 path to sparse depth map
             intrinsics_path : str
                 path to 3 x 3 camera intrinsics
-            ground_truth_path : str
-                path to ground truth
         Returns:
             tensor : H x W x 3 RGB image at time t
             tensor : H x W x 3 RGB image at time t - 1
@@ -147,24 +136,18 @@ class FusionNetDataloader(object):
             # Load camera intrinsics
             intrinsics = self._load_intrinsics_func(intrinsics_path)
 
-            # Load semi dense ground-truth
-            ground_truth = \
-                self._load_depth_with_validity_map_func(ground_truth_path)
-
             return (image0,
                     image1,
                     image2,
                     input_depth,
-                    intrinsics,
-                    ground_truth)
+                    intrinsics)
 
     def _crop_func(self,
                    image0,
                    image1,
                    image2,
                    input_depth,
-                   intrinsics,
-                   ground_truth):
+                   intrinsics):
         '''
         Crops images, input depth and ground truth to specified shape
 
@@ -179,19 +162,16 @@ class FusionNetDataloader(object):
                 H x W x 2 input depth of sparse depth and validity map
             intrinsics : tensor
                 3 x 3 camera intrinsics matrix
-            ground_truth : tensor
-                H x W x 2 ground truth and validity map
         Returns:
             tensor : h x w x 3 RGB image at time t
             tensor : h x w x 3 RGB image at time t - 1
             tensor : h x w x 3 RGB image at time t + 1
             tensor : h x w x 2 input depth of dense depth and sparse depth/validity map
             tensor : 3 x 3 camera intrinsics matrix
-            tensor : h x w x 2 ground truth and validity map
         '''
 
-        def crop_func(in0, in1, in2, in3, k, in4, random_crop):
-            # Bottom center crop to specified height and width instead of resize
+        def crop_func(in0, in1, in2, in3, k, random_horizontal_crop, random_vertical_crop):
+            # Center crop to specified height and width, default bottom centered
             shape = tf.shape(in0)
 
             start_height = tf.cond(
@@ -202,11 +182,24 @@ class FusionNetDataloader(object):
 
             start_width = tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0)
 
-            # If we allow augment then do random horizontal shift
+            # If we allow augmentation then do random horizontal or vertical shift for crop
+            start_height = tf.cond(
+                tf.math.logical_and(self.center_crop_placeholder, random_vertical_crop),
+                lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * start_height), dtype=tf.int32),
+                lambda: tf.to_int32(start_height))
+
+            start_height = tf.cond(
+                tf.math.logical_and(self.bottom_crop_placeholder, random_vertical_crop),
+                lambda: tf.cast(tf.random_uniform([], 0.0, start_height), dtype=tf.int32),
+                lambda: tf.to_int32(start_height))
+
+            end_height = self.n_height + start_height
+
             start_width = tf.cond(
-                random_crop,
+                random_horizontal_crop,
                 lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * start_width), dtype=tf.int32),
                 lambda: tf.to_int32(start_width))
+
             end_width = self.n_width + start_width
 
             # Apply crop
@@ -214,7 +207,6 @@ class FusionNetDataloader(object):
             in1 = in1[start_height:end_height, start_width:end_width, :]
             in2 = in2[start_height:end_height, start_width:end_width, :]
             in3 = in3[start_height:end_height, start_width:end_width, :]
-            in4 = in4[start_height:end_height, start_width:end_width, :]
 
             # Adjust camera intrinsics after crop
             k_adj = tf.to_float([
@@ -223,10 +215,10 @@ class FusionNetDataloader(object):
                 [0, 0, 0            ]])
             k = k + k_adj
 
-            return in0, in1, in2, in3, k, in4
+            return in0, in1, in2, in3, k
 
         with tf.variable_scope('crop_func'):
-            image0, image1, image2, input_depth, intrinsics, ground_truth = tf.cond(
+            image0, image1, image2, input_depth, intrinsics, = tf.cond(
                 tf.math.logical_or(self.center_crop_placeholder, self.bottom_crop_placeholder),
                 lambda: crop_func(
                     image0,
@@ -234,16 +226,15 @@ class FusionNetDataloader(object):
                     image2,
                     input_depth,
                     intrinsics,
-                    ground_truth,
-                    self.random_crop_placeholder),
-                lambda: (image0, image1, image2, input_depth, intrinsics, ground_truth))
+                    self.random_horizontal_crop_placeholder,
+                    self.random_vertical_crop_placeholder),
+                lambda: (image0, image1, image2, input_depth, intrinsics))
 
             return (image0,
                     image1,
                     image2,
                     input_depth,
-                    intrinsics,
-                    ground_truth)
+                    intrinsics)
 
     def _load_image_composite_func(self, path):
         '''
@@ -370,11 +361,11 @@ class FusionNetDataloader(object):
                    input_depth_paths=None,
                    sparse_depth_paths=None,
                    intrinsics_paths=None,
-                   ground_truth_paths=None,
                    depth_load_multiplier=256.0,
                    do_center_crop=False,
                    do_bottom_crop=False,
-                   random_crop=False):
+                   random_horizontal_crop=False,
+                   random_vertical_crop=False):
 
         assert session is not None
 
@@ -383,11 +374,11 @@ class FusionNetDataloader(object):
             self.input_depth_placeholder            : input_depth_paths,
             self.sparse_depth_placeholder           : sparse_depth_paths,
             self.intrinsics_placeholder             : intrinsics_paths,
-            self.ground_truth_placeholder           : ground_truth_paths,
             self.depth_load_multiplier_placeholder  : depth_load_multiplier,
             self.center_crop_placeholder            : do_center_crop,
             self.bottom_crop_placeholder            : do_bottom_crop,
-            self.random_crop_placeholder            : random_crop
+            self.random_horizontal_crop_placeholder : random_horizontal_crop,
+            self.random_vertical_crop_placeholder   : random_vertical_crop
         }
 
         session.run(self.iterator.initializer, feed_dict)
@@ -405,8 +396,6 @@ if __name__ == '__main__':
         os.path.join('training', 'kitti_train_sparse_depth.txt')
     kitti_train_intrinsics_filepath = \
         os.path.join('training', 'kitti_train_intrinsics.txt')
-    kitti_train_ground_truth_filepath = \
-        os.path.join('training', 'kitti_train_semi_dense_depth.txt')
 
     kitti_train_image_paths = \
         data_utils.read_paths(kitti_train_image_filepath)
@@ -416,8 +405,6 @@ if __name__ == '__main__':
         data_utils.read_paths(kitti_train_sparse_depth_filepath)
     kitti_train_intrinsics_paths = \
         data_utils.read_paths(kitti_train_intrinsics_filepath)
-    kitti_train_ground_truth_paths = \
-        data_utils.read_paths(kitti_train_ground_truth_filepath)
 
     n_height = 320
     n_width = 768
@@ -434,22 +421,21 @@ if __name__ == '__main__':
         input_depth_paths=kitti_train_input_depth_paths,
         sparse_depth_paths=kitti_train_sparse_depth_paths,
         intrinsics_paths=kitti_train_intrinsics_paths,
-        ground_truth_paths=kitti_train_ground_truth_paths,
         do_center_crop=False,
         do_bottom_crop=True,
-        random_crop=True)
+        random_horizontal_crop=True,
+        random_vertical_crop=False)
 
     n_sample = 0
-    print('Testing dataloader KITTI using paths from: \n {} \n {} \n {} \n {} \n {}'.format(
+    print('Testing dataloader KITTI using paths from: \n {} \n {} \n {} \n {}'.format(
         kitti_train_image_filepath,
         kitti_train_input_depth_filepath,
         kitti_train_sparse_depth_filepath,
-        kitti_train_intrinsics_filepath,
-        kitti_train_ground_truth_filepath))
+        kitti_train_intrinsics_filepath))
 
     while True:
         try:
-            image0, image1, image2, input_depth, intrinsics, ground_truth = \
+            image0, image1, image2, input_depth, intrinsics = \
                 session.run(dataloader.next_element)
 
             # Test shapes
@@ -485,13 +471,6 @@ if __name__ == '__main__':
                 'Path={}  Min={}'.format(kitti_train_sparse_depth_paths[n_sample], np.min(input_depth[..., 1]))
             assert(np.max(input_depth[..., 1]) <= 256.0), \
                 'Path={}  Max={}'.format(kitti_train_sparse_depth_paths[n_sample], np.max(input_depth[..., 1]))
-
-            assert(np.min(ground_truth[..., 0]) >= 0.0), \
-                'Path={}  Min={}'.format(kitti_train_ground_truth_paths[n_sample], np.min(ground_truth[..., 0]))
-            assert(np.max(ground_truth[..., 0]) <= 256.0), \
-                'Path={}  Max={}'.format(kitti_train_ground_truth_paths[n_sample], np.max(ground_truth[..., 0]))
-            assert(np.array_equal(np.unique(ground_truth[..., 1]), np.array([0, 1]))), \
-                'Path={}  Validity map contains values not 0 or 1'.format(kitti_train_ground_truth_paths[n_sample])
 
             n_sample = n_sample + 1
 

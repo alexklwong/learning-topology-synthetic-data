@@ -1,3 +1,5 @@
+#!bin/bash
+
 export CUDA_VISIBLE_DEVICES=1
 
 python setup/setup_dataset_syn2real.py \

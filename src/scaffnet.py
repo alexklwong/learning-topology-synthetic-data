@@ -38,8 +38,8 @@ def train(train_sparse_depth_path,
           # Network architecture
           network_type=settings.NETWORK_TYPE_SCAFFNET,
           activation_func=settings.ACTIVATION_FUNC,
-          output_func=settings.OUTPUT_FUNC,
-          n_filter_output=settings.N_FILTER_OUTPUT,
+          output_func=settings.OUTPUT_FUNC_SCAFFNET,
+          n_filter_output=settings.N_FILTER_OUTPUT_SCAFFNET,
           # Spatial pyramid pooling
           pool_kernel_sizes_spp=settings.POOL_KERNEL_SIZES_SPP,
           n_convolution_spp=settings.N_CONVOLUTION_SPP,
