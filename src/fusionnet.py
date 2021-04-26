@@ -6,8 +6,8 @@ import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 import global_constants as settings
-import data_utils, validation_utils
-from fusionnet_dataloader import FusionDataloader
+import data_utils, eval_utils
+from fusionnet_dataloader import FusionNetDataloader
 from fusionnet_model import FusionNetModel
 from data_utils import log
 
@@ -158,7 +158,7 @@ def train(train_image_path,
         optimizer = tf.train.AdamOptimizer(learning_rate_schedule)
 
         # Initialize dataloader
-        dataloader = FusionDataloader(
+        dataloader = FusionNetDataloader(
             shape=[n_batch, n_height, n_width, 3],
             name='fusionnet_dataloader',
             n_thread=n_thread,
@@ -400,7 +400,7 @@ def train(train_image_path,
                     # Run validation metrics
                     val_output_depths = val_output_depths[0:n_val_sample, ...]
 
-                    best_results = validation_utils.validate(
+                    best_results = eval_utils.evaluate(
                         val_output_depths,
                         val_ground_truths,
                         best_results,

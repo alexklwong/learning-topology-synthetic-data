@@ -1,6 +1,6 @@
 import argparse
 import global_constants as settings
-from scaffnet import train
+from fusionnet import train
 
 
 parser = argparse.ArgumentParser()

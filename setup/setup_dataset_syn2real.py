@@ -48,9 +48,9 @@ parser.add_argument('--network_type',
 parser.add_argument('--activation_func',
     type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
 parser.add_argument('--output_func',
-    type=str, default=settings.OUTPUT_FUNC, help='Output function for network')
+    type=str, default=settings.OUTPUT_FUNC_SCAFFNET, help='Output function for network')
 parser.add_argument('--n_filter_output',
-    type=int, default=settings.N_FILTER_OUTPUT, help='Number of filters to use in final full resolution output')
+    type=int, default=settings.N_FILTER_OUTPUT_SCAFFNET, help='Number of filters to use in final full resolution output')
 # Spatial pyramid pooling
 parser.add_argument('--pool_kernel_sizes_spp',
     nargs='+', type=int, default=settings.POOL_KERNEL_SIZES_SPP, help='Kernel sizes for spatial pyramid pooling')
