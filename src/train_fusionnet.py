@@ -72,6 +72,10 @@ parser.add_argument('--depth_filter_pct',
 parser.add_argument('--activation_func',
     type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
 # Depth prediction settings
+parser.add_argument('--min_predict_depth',
+    type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth prediction value')
+parser.add_argument('--max_predict_depth',
+    type=float, default=settings.MAX_PREDICT_DEPTH, help='Maximum depth prediction value')
 parser.add_argument('--min_scale_depth',
     type=float, default=settings.MIN_SCALE_DEPTH, help='Minimum depth scale value')
 parser.add_argument('--max_scale_depth',
@@ -151,7 +155,7 @@ if __name__ == '__main__':
           depth_filter_pct=args.depth_filter_pct,
           activation_func=args.activation_func,
           # Depth prediction settings
-          min_predict_depth=args.min_depth_depth,
+          min_predict_depth=args.min_predict_depth,
           max_predict_depth=args.max_predict_depth,
           min_scale_depth=args.min_scale_depth,
           max_scale_depth=args.max_scale_depth,

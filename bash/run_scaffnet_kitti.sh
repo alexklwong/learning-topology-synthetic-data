@@ -30,5 +30,4 @@ validation/kitti/kitti_val_ground_truth.txt \
 --save_outputs \
 --output_path \
 pretrained_models/scaffnet/vkitti/outputs \
-scaffnet.ckpt-vkitti \
 --n_thread 4
