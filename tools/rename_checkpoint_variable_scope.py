@@ -25,14 +25,16 @@ with tf.Session() as session:
             args.checkpoint_load_path,
             variable_name)
 
+        variable_renamed = variable_name
+
         # Rename variable scope
         if args.variable_scope in variable_name:
 
-            variable_renamed = variable_name.replace(args.variable_scope, args.new_variable_scope)
+            variable_renamed = variable_renamed.replace(args.variable_scope, args.new_variable_scope)
 
             print('Renaming {} to {}'.format(variable_name, variable_renamed))
 
-            variable = tf.Variable(variable, name=variable_renamed)
+        variable = tf.Variable(variable, name=variable_renamed)
 
     # Save the variables
     saver = tf.train.Saver()

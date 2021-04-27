@@ -8,7 +8,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import global_constants as settings
 import data_utils, eval_utils
 from fusionnet_dataloader import FusionNetDataloader
-from fusioinnet_model import FusionNetModel
+from fusionnet_model import FusionNetModel
 from fusionnet import run
 from log_utils import log
 
