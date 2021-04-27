@@ -334,7 +334,13 @@ class FusionNetDataloader(object):
         '''
 
         with tf.variable_scope('load_intrinsics_func'):
-            return tf.reshape(self._load_npy_func(path), [3, 3])
+
+            intrinsics = tf.cond(
+                tf.equal(tf.size(path), 0),
+                tf.eye(3),
+                tf.reshape(self._load_npy_func(path), [3, 3]))
+
+            return intrinsics
 
     def _load_npy_func(self, path):
         '''

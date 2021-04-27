@@ -30,7 +30,7 @@ parser.add_argument('--input_depth_path',
 parser.add_argument('--sparse_depth_path',
     type=str, required=True, help='Paths to sparse depth map paths')
 parser.add_argument('--intrinsics_path',
-    type=str, required=True, help='Paths to intrinsics paths')
+    type=str, default='', help='Paths to intrinsics paths')
 parser.add_argument('--ground_truth_path',
     type=str, default='', help='Paths to ground truth paths')
 # Dataloader settings
@@ -104,8 +104,11 @@ input_depth_paths = input_depth_paths[args.start_idx:args.end_idx]
 sparse_depth_paths = sorted(data_utils.read_paths(args.sparse_depth_path))
 sparse_depth_paths = sparse_depth_paths[args.start_idx:args.end_idx]
 
-intrinsics_paths = sorted(data_utils.read_paths(args.intrinsics_path))
-intrinsics_paths = intrinsics_paths[args.start_idx:args.end_idx]
+if args.intrinsics_path != '':
+    intrinsics_paths = sorted(data_utils.read_paths(args.intrinsics_path))
+    intrinsics_paths = intrinsics_paths[args.start_idx:args.end_idx]
+else:
+    intrinsics_paths = [''] * len(image_paths)
 
 n_sample = len(image_paths)
 
