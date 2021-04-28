@@ -11,8 +11,6 @@ validation/kitti/kitti_val_image.txt \
 validation/kitti/kitti_val_predict_depth.txt \
 --sparse_depth_path \
 validation/kitti/kitti_val_sparse_depth.txt \
---intrinsics_path \
-training/kitti/kitti_train_intrinsics.txt \
 --ground_truth_path \
 validation/kitti/kitti_val_ground_truth.txt \
 --n_batch 8 \

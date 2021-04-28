@@ -4,14 +4,13 @@ import data_utils
 import global_constants as settings
 
 
-class FusionNetDataloader(object):
+class FusionNetStandaloneDataloader(object):
     '''
     Dataloader class for loading:
-    (1) image at time t
-    (2) image at time t - 1
-    (3) image at time t + 1
-    (4) input (predicted) depth with sparse depth at time t
-    (5) 3 x 3 intrinsics matrix
+    (1) image
+    (2) sparse depth
+
+    to run FusionNet standalone without needing to run ScaffNet separately
 
     Args:
         shape : list[int]
@@ -43,10 +42,10 @@ class FusionNetDataloader(object):
 
         with tf.variable_scope(self.scope_name):
             # Set up placeholders for network inputs
-            self.image_composite_placeholder = tf.placeholder(tf.string, shape=[None])
-            self.input_depth_placeholder = tf.placeholder(tf.string, shape=[None])
+            self.load_image_composite_placeholder = tf.placeholder(tf.bool, shape=())
+
+            self.image_placeholder = tf.placeholder(tf.string, shape=[None])
             self.sparse_depth_placeholder = tf.placeholder(tf.string, shape=[None])
-            self.intrinsics_placeholder = tf.placeholder(tf.string, shape=[None])
 
             # Set up placeholder for loading depth
             self.depth_load_multiplier_placeholder = tf.placeholder(tf.float32, shape=())
@@ -54,14 +53,10 @@ class FusionNetDataloader(object):
             # Set up crop and data augmentation placeholders
             self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
             self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_horizontal_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_vertical_crop_placeholder = tf.placeholder(tf.bool, shape=())
 
             self.dataset = tf.data.Dataset.from_tensor_slices((
                 self.image_composite_placeholder,
-                self.input_depth_placeholder,
-                self.sparse_depth_placeholder,
-                self.intrinsics_placeholder))
+                self.sparse_depth_placeholder))
 
             self.dataset = self.dataset \
                 .map(self._load_func, num_parallel_calls=self.n_thread) \
@@ -71,104 +66,56 @@ class FusionNetDataloader(object):
             self.iterator = self.dataset.make_initializable_iterator()
             self.next_element = self.iterator.get_next()
 
-            # Image 0 (t)
+            # Image
             self.next_element[0].set_shape(
                 [self.n_batch, self.n_height, self.n_width, self.n_channel])
-            # Image 1 (t - 1)
+            # Sparse depth
             self.next_element[1].set_shape(
-                [self.n_batch, self.n_height, self.n_width, self.n_channel])
-            # Image 2 (t + 1)
-            self.next_element[2].set_shape(
-                [self.n_batch, self.n_height, self.n_width, self.n_channel])
-            # Input depth and sparse depth
-            self.next_element[3].set_shape(
                 [self.n_batch, self.n_height, self.n_width, 2])
-            # Camera intrinsics 3x3 matrix
-            self.next_element[4].set_shape([self.n_batch, 3, 3])
 
-    def _load_func(self,
-                   image_composite_path,
-                   input_depth_path,
-                   sparse_depth_path,
-                   intrinsics_path):
+    def _load_func(self, image_path, sparse_depth_path):
         '''
         Load function for:
-        (1) image at time t
-        (2) image at time t - 1
-        (3) image at time t + 1
-        (4) input depth at time t
-        (5) 3 x 3 intrinsics matrix
+        (1) image
+        (2) sparse depth
 
         Args:
             image_composite_path : str
                 path to image composite (triplet)
-            input_depth_path : str
-                path to dense depth map
             sparse_depth_path : str
                 path to sparse depth map
-            intrinsics_path : str
-                path to 3 x 3 camera intrinsics
         Returns:
-            tensor : H x W x 3 RGB image at time t
-            tensor : H x W x 3 RGB image at time t - 1
-            tensor : H x W x 3 RGB image at time t + 1
-            tensor : H x W x 2 input (predicted) depth and sparse depth/validity map
-            tensor : 3 x 3 camera intrinsics matrix
+            tensor : H x W x 3 RGB image
+            tensor : H x W x 2 sparse depth and validity map
         '''
 
         with tf.variable_scope('load_func'):
-            # Load image at time 0, 1, 2
-            image0, image1, image2 = \
-                self._load_image_composite_func(image_composite_path)
+            # Load image
+            image = tf.cond(
+                self.load_image_composite_placeholder,
+                lambda : self._load_image_composite_func(image_path)[0],
+                lambda : self._load_image(image_path))
 
-            # Load input (predicted) depth and sparse depth
-            input_depth = self._load_depth_func(input_depth_path)
+            # Load sparse depth and validity map
+            sparse_depth = self._load_depth_with_validity_map_func(sparse_depth_path)
 
-            sparse_depth = self._load_depth_func(sparse_depth_path)
+            return (image, sparse_depth)
 
-            # Depth and sparse depth or validity map pair
-            input_depth = tf.concat([
-                tf.expand_dims(input_depth, axis=-1),
-                tf.expand_dims(sparse_depth, axis=-1)], axis=-1)
-
-            # Load camera intrinsics
-            intrinsics = self._load_intrinsics_func(intrinsics_path)
-
-            return (image0,
-                    image1,
-                    image2,
-                    input_depth,
-                    intrinsics)
-
-    def _crop_func(self,
-                   image0,
-                   image1,
-                   image2,
-                   input_depth,
-                   intrinsics):
+    def _crop_func(self, image, input_depth):
         '''
-        Crops images and input depth to specified shape
+        Crops image and input depth to specified shape
 
         Args:
-            image0 : tensor
-                H x W x 3 RGB image at time t
-            image1 : tensor
-                H x W x 3 RGB image at time t - 1
-            image2 : tensor
-                H x W x 3 RGB image at time t + 1
+            image : tensor
+                H x W x 3 RGB image
             input_depth : tensor
                 H x W x 2 input depth of sparse depth and validity map
-            intrinsics : tensor
-                3 x 3 camera intrinsics matrix
         Returns:
-            tensor : h x w x 3 RGB image at time t
-            tensor : h x w x 3 RGB image at time t - 1
-            tensor : h x w x 3 RGB image at time t + 1
-            tensor : h x w x 2 input depth of dense depth and sparse depth/validity map
-            tensor : 3 x 3 camera intrinsics matrix
+            tensor : h x w x 3 RGB image
+            tensor : h x w x 2 sparse depth and validity map
         '''
 
-        def crop_func(in0, in1, in2, in3, k, random_horizontal_crop, random_vertical_crop):
+        def crop_func(in0, in1):
             # Center crop to specified height and width, default bottom centered
             shape = tf.shape(in0)
 
@@ -177,61 +124,24 @@ class FusionNetDataloader(object):
                 lambda: tf.to_int32(tf.to_float(shape[0] - self.n_height) / tf.to_float(2.0)),
                 lambda: tf.to_int32(shape[0] - self.n_height))
 
-            start_width = tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0)
-
-            # If we allow augmentation then do random horizontal or vertical shift for crop
-            start_height = tf.cond(
-                tf.math.logical_and(self.center_crop_placeholder, random_vertical_crop),
-                lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * tf.to_float(start_height)), dtype=tf.int32),
-                lambda: tf.to_int32(start_height))
-
-            start_height = tf.cond(
-                tf.math.logical_and(self.bottom_crop_placeholder, random_vertical_crop),
-                lambda: tf.cast(tf.random_uniform([], 0.0, tf.to_float(start_height)), dtype=tf.int32),
-                lambda: tf.to_int32(start_height))
-
             end_height = self.n_height + start_height
 
-            start_width = tf.cond(
-                random_horizontal_crop,
-                lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * start_width), dtype=tf.int32),
-                lambda: tf.to_int32(start_width))
-
+            start_width = tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0)
             end_width = self.n_width + start_width
 
             # Apply crop
             in0 = in0[start_height:end_height, start_width:end_width, :]
             in1 = in1[start_height:end_height, start_width:end_width, :]
-            in2 = in2[start_height:end_height, start_width:end_width, :]
-            in3 = in3[start_height:end_height, start_width:end_width, :]
 
-            # Adjust camera intrinsics after crop
-            k_adj = tf.to_float([
-                [0, 0, -start_width ],
-                [0, 0, -start_height],
-                [0, 0, 0            ]])
-            k = k + k_adj
-
-            return in0, in1, in2, in3, k
+            return in0, in1
 
         with tf.variable_scope('crop_func'):
-            image0, image1, image2, input_depth, intrinsics, = tf.cond(
+            image, input_depth = tf.cond(
                 tf.math.logical_or(self.center_crop_placeholder, self.bottom_crop_placeholder),
-                lambda: crop_func(
-                    image0,
-                    image1,
-                    image2,
-                    input_depth,
-                    intrinsics,
-                    self.random_horizontal_crop_placeholder,
-                    self.random_vertical_crop_placeholder),
-                lambda: (image0, image1, image2, input_depth, intrinsics))
+                lambda: crop_func(image, input_depth),
+                lambda: (image, input_depth))
 
-            return (image0,
-                    image1,
-                    image2,
-                    input_depth,
-                    intrinsics)
+            return (image, input_depth)
 
     def _load_image_composite_func(self, path):
         '''
@@ -260,6 +170,25 @@ class FusionNetDataloader(object):
                 image2 = image2 / 255.0
 
             return tf.squeeze(image0), tf.squeeze(image1), tf.squeeze(image2)
+
+    def _load_image_func(self, path):
+        '''
+        Loads image
+
+        Args:
+            path : str
+                path to depth map
+        Returns:
+            tensor : H x W x 3 RGB image
+        '''
+
+        with tf.variable_scope('load_image_func'):
+            image = tf.to_float(tf.image.decode_png(tf.read_file(path)))
+
+            if self.normalize:
+                image = image / 255.0
+
+            return tf.squeeze(image)
 
     def _load_depth_func(self, path):
         '''
@@ -360,28 +289,22 @@ class FusionNetDataloader(object):
 
     def initialize(self,
                    session,
-                   image_composite_paths=None,
-                   input_depth_paths=None,
+                   image_paths=None,
                    sparse_depth_paths=None,
-                   intrinsics_paths=None,
                    depth_load_multiplier=256.0,
+                   load_image_composite=True,
                    do_center_crop=False,
-                   do_bottom_crop=False,
-                   random_horizontal_crop=False,
-                   random_vertical_crop=False):
+                   do_bottom_crop=False):
 
         assert session is not None
 
         feed_dict = {
-            self.image_composite_placeholder        : image_composite_paths,
-            self.input_depth_placeholder            : input_depth_paths,
+            self.image_placeholder                  : image_paths,
             self.sparse_depth_placeholder           : sparse_depth_paths,
-            self.intrinsics_placeholder             : intrinsics_paths,
             self.depth_load_multiplier_placeholder  : depth_load_multiplier,
+            self.load_image_composite_placeholder   : load_image_composite,
             self.center_crop_placeholder            : do_center_crop,
             self.bottom_crop_placeholder            : do_bottom_crop,
-            self.random_horizontal_crop_placeholder : random_horizontal_crop,
-            self.random_vertical_crop_placeholder   : random_vertical_crop
         }
 
         session.run(self.iterator.initializer, feed_dict)
@@ -393,27 +316,19 @@ if __name__ == '__main__':
     # Testing dataloader on KITTI
     kitti_train_image_filepath = \
         os.path.join('training', 'kitti_train_image.txt')
-    kitti_train_input_depth_filepath = \
-        os.path.join('training', 'kitti_train_predict_depth.txt')
     kitti_train_sparse_depth_filepath = \
         os.path.join('training', 'kitti_train_sparse_depth.txt')
-    kitti_train_intrinsics_filepath = \
-        os.path.join('training', 'kitti_train_intrinsics.txt')
 
     kitti_train_image_paths = \
         data_utils.read_paths(kitti_train_image_filepath)
-    kitti_train_input_depth_paths = \
-        data_utils.read_paths(kitti_train_input_depth_filepath)
     kitti_train_sparse_depth_paths = \
         data_utils.read_paths(kitti_train_sparse_depth_filepath)
-    kitti_train_intrinsics_paths = \
-        data_utils.read_paths(kitti_train_intrinsics_filepath)
 
     n_height = 320
     n_width = 768
 
-    dataloader = FusionNetDataloader(
-        name='fusionnet_dataloader',
+    dataloader = FusionNetStandaloneDataloader(
+        name='fusionnet_standalone_dataloader',
         shape=[1, n_height, n_width, 1],
         normalize=True)
 
@@ -421,20 +336,16 @@ if __name__ == '__main__':
     dataloader.initialize(
         session,
         image_composite_paths=kitti_train_image_paths,
-        input_depth_paths=kitti_train_input_depth_paths,
         sparse_depth_paths=kitti_train_sparse_depth_paths,
-        intrinsics_paths=kitti_train_intrinsics_paths,
+        depth_load_multiplier=256.0,
+        load_image_composite=True,
         do_center_crop=False,
-        do_bottom_crop=True,
-        random_horizontal_crop=True,
-        random_vertical_crop=False)
+        do_bottom_crop=True)
 
     n_sample = 0
-    print('Testing dataloader KITTI using paths from: \n {} \n {} \n {} \n {}'.format(
+    print('Testing dataloader KITTI using paths from: \n {} \n {}'.format(
         kitti_train_image_filepath,
-        kitti_train_input_depth_filepath,
-        kitti_train_sparse_depth_filepath,
-        kitti_train_intrinsics_filepath))
+        kitti_train_sparse_depth_filepath))
 
     while True:
         try:
@@ -448,10 +359,6 @@ if __name__ == '__main__':
                 'Path={} Image=1  Shape={}'.format(kitti_train_image_paths[n_sample], image1.shape)
             assert(image2.shape == (1, n_height, n_width, 3)), \
                 'Path={} Image=2  Shape={}'.format(kitti_train_image_paths[n_sample], image2.shape)
-            assert(input_depth.shape == (1, n_height, n_width, 2)), \
-                'Path={} Shape={}'.format(kitti_train_input_depth_paths[n_sample], input_depth.shape)
-            assert(intrinsics.shape == (1, 3, 3)), \
-                'Path={} Shape={}'.format(kitti_train_intrinsics_paths[n_sample], intrinsics.shape)
 
             # Test values
             assert(np.min(image0) >= 0.0), \
@@ -466,10 +373,6 @@ if __name__ == '__main__':
                 'Path={} Image=2  Min={}'.format(kitti_train_image_paths[n_sample], np.min(image2))
             assert(np.max(image2) <= 1.0), \
                 'Path={} Image=2  Max={}'.format(kitti_train_image_paths[n_sample], np.max(image2))
-            assert(np.min(input_depth[..., 0]) >= 0.0), \
-                'Path={}  Min={}'.format(kitti_train_input_depth_paths[n_sample], np.min(input_depth[..., 0]))
-            assert(np.max(input_depth[..., 0]) <= 256.0), \
-                'Path={}  Max={}'.format(kitti_train_input_depth_paths[n_sample], np.max(input_depth[..., 0]))
 
             assert(np.min(input_depth[..., 1]) >= 0.0), \
                 'Path={}  Min={}'.format(kitti_train_sparse_depth_paths[n_sample], np.min(input_depth[..., 1]))

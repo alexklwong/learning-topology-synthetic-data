@@ -3,13 +3,15 @@ import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import tensorflow as tf
+import tensorflow.contrib.slim as slim
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 import global_constants as settings
 import data_utils, eval_utils
-from scaffnet_dataloader import ScaffNetDataloader
+from fusionnet_standalone_dataloader import FusionNetStandaloneDataloader
 from scaffnet_model import ScaffNetModel
-from scaffnet import run
+from fusionnet_model import FusionNetModel
+from fusionnet import run
 from log_utils import log
 
 
@@ -20,13 +22,15 @@ N_WIDTH = 1216
 parser = argparse.ArgumentParser()
 
 # Model path
-parser.add_argument('--restore_path',
-    type=str, required=True, help='Model checkpoint restore path')
+parser.add_argument('--restore_path_scaffnet',
+    type=str, required=True, help='FusionNet model checkpoint restore path')
+parser.add_argument('--restore_path_fusionnet',
+    type=str, required=True, help='FusionNet model checkpoint restore path')
 # Input paths
+parser.add_argument('--image_path',
+    type=str, required=True, help='Paths to image paths')
 parser.add_argument('--sparse_depth_path',
-    type=str, required=True, help='Paths to sparse depth paths')
-parser.add_argument('--validity_map_path',
-    type=str, required=True, help='Paths to validity map paths')
+    type=str, required=True, help='Paths to sparse depth map paths')
 parser.add_argument('--ground_truth_path',
     type=str, default='', help='Paths to ground truth paths')
 # Dataloader settings
@@ -36,10 +40,8 @@ parser.add_argument('--end_idx',
     type=int, default=1000, help='End of subset of samples to run')
 parser.add_argument('--depth_load_multiplier',
     type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
-parser.add_argument('--min_dataset_depth',
-    type=float, default=settings.MIN_DATASET_DEPTH, help='Minimum depth value for dataset')
-parser.add_argument('--max_dataset_depth',
-    type=float, default=settings.MAX_DATASET_DEPTH, help='Maximum depth value for dataset')
+parser.add_argument('--load_image_composite',
+    action='store_true', help='If set, load image triplet composite')
 # Batch parameters
 parser.add_argument('--n_batch',
     type=int, default=settings.N_BATCH, help='Number of samples per batch')
@@ -47,12 +49,12 @@ parser.add_argument('--n_height',
     type=int, default=N_HEIGHT, help='Height of each sample')
 parser.add_argument('--n_width',
     type=int, default=N_WIDTH, help='Width of each sample')
-# Network architecture
-parser.add_argument('--network_type',
+# ScaffNet network architecture
+parser.add_argument('--network_type_scaffnet',
     type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
-parser.add_argument('--activation_func',
+parser.add_argument('--activation_func_scaffnet',
     type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
-parser.add_argument('--n_filter_output',
+parser.add_argument('--n_filter_output_scaffnet',
     type=int, default=settings.N_FILTER_OUTPUT_SCAFFNET, help='Number of filters to use in final full resolution output')
 # Spatial pyramid pooling
 parser.add_argument('--pool_kernel_sizes_spp',
@@ -61,11 +63,28 @@ parser.add_argument('--n_convolution_spp',
     type=int, default=settings.N_CONVOLUTION_SPP, help='Number of convolutions to use to balance density vs. detail tradeoff')
 parser.add_argument('--n_filter_spp',
     type=int, default=settings.N_FILTER_SPP, help='Number of filters to use in 1 x 1 convolutions in spatial pyramid pooling')
+# FusionNet network architecture
+parser.add_argument('--network_type_fusionnet',
+    type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
+parser.add_argument('--image_filter_pct_fusionnet',
+    type=float, default=settings.IMAGE_FILTER_PCT, help='Percentage of filters to use for image branch')
+parser.add_argument('--depth_filter_pct_fusionnet',
+    type=float, default=settings.DEPTH_FILTER_PCT, help='Percentage of filters to use for depth branch')
+parser.add_argument('--activation_func_fusionnet',
+    type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
 # Depth prediction settings
 parser.add_argument('--min_predict_depth',
-    type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth value to predict')
+    type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth prediction value')
 parser.add_argument('--max_predict_depth',
-    type=float, default=settings.MAX_PREDICT_DEPTH, help='Maximum depth value to predict')
+    type=float, default=settings.MAX_PREDICT_DEPTH, help='Maximum depth prediction value')
+parser.add_argument('--min_scale_depth',
+    type=float, default=settings.MIN_SCALE_DEPTH, help='Minimum depth scale value')
+parser.add_argument('--max_scale_depth',
+    type=float, default=settings.MAX_SCALE_DEPTH, help='Maximum depth scale value')
+parser.add_argument('--min_residual_depth',
+    type=float, default=settings.MIN_RESIDUAL_DEPTH, help='Minimum depth residual value')
+parser.add_argument('--max_residual_depth',
+    type=float, default=settings.MAX_RESIDUAL_DEPTH, help='Maximum depth residual value')
 # Depth evaluation settings
 parser.add_argument('--min_evaluate_depth',
     type=float, default=settings.MIN_EVALUATE_DEPTH, help='Minimum depth value evaluate')
@@ -91,20 +110,20 @@ log_path = os.path.join(args.output_path, 'results.txt')
 if not os.path.exists(args.output_path):
     os.makedirs(args.output_path)
 
-# Load sparse depth and validity map paths from file for evaluation
+# Load image, input depth, and sparse depth from file for evaluation
+image_paths = sorted(data_utils.read_paths(args.image_path))
+image_paths = image_paths[args.start_idx:args.end_idx]
+
 sparse_depth_paths = sorted(data_utils.read_paths(args.sparse_depth_path))
 sparse_depth_paths = sparse_depth_paths[args.start_idx:args.end_idx]
 
-validity_map_paths = sorted(data_utils.read_paths(args.validity_map_path))
-validity_map_paths = validity_map_paths[args.start_idx:args.end_idx]
+n_sample = len(image_paths)
 
-n_sample = len(sparse_depth_paths)
-
-assert n_sample == len(validity_map_paths)
+assert n_sample == len(sparse_depth_paths)
 
 # Pad all paths based on batch size
+image_paths = data_utils.pad_batch(image_paths, args.n_batch)
 sparse_depth_paths = data_utils.pad_batch(sparse_depth_paths, args.n_batch)
-validity_map_paths = data_utils.pad_batch(validity_map_paths, args.n_batch)
 
 n_step = n_sample // args.n_batch
 
@@ -121,7 +140,6 @@ if ground_truth_available:
     for idx in range(n_sample):
 
         print('Loading {}/{} groundtruth depth maps'.format(idx + 1, n_sample), end='\r')
-
         ground_truth, validity_map = \
             data_utils.load_depth_with_validity_map(ground_truth_paths[idx])
 
@@ -139,30 +157,50 @@ if ground_truth_available:
 Build graph
 '''
 with tf.Graph().as_default():
-    dataloader = ScaffNetDataloader(
-        shape=[args.n_batch, args.n_height, args.n_width, 2],
-        name='scaffnet_dataloader',
+    # Initialize dataloader
+    dataloader = FusionNetStandaloneDataloader(
+        shape=[args.n_batch, args.n_height, args.n_width, 3],
+        name='fusionnet_standalone_dataloader',
         n_thread=args.n_thread,
-        prefetch_size=(2 * args.n_thread))
+        prefetch_size=2 * args.n_thread)
 
     # Fetch the input from dataloader
-    input_depth = dataloader.next_element[0]
+    image = dataloader.next_element[0]
+    sparse_depth = dataloader.next_element[1]
 
     # Build computation graph
     scaffnet = ScaffNetModel(
-        input_depth,
-        input_depth,
+        sparse_depth,
+        sparse_depth,
         is_training=False,
-        network_type=args.network_type,
-        activation_func=args.activation_func,
-        n_filter_output=args.n_filter_output,
+        network_type=args.network_type_scaffnet,
+        activation_func=args.activation_func_scaffnet,
+        n_filter_output=args.n_filter_output_scaffnet,
         pool_kernel_sizes_spp=args.pool_kernel_sizes_spp,
         n_convolution_spp=args.n_convolution_spp,
         n_filter_spp=args.n_filter_spp,
-        min_dataset_depth=args.min_dataset_depth,
-        max_dataset_depth=args.max_dataset_depth,
         min_predict_depth=args.min_predict_depth,
         max_predict_depth=args.max_predict_depth)
+
+    input_depth = scaffnet.predict
+
+    fusionnet = FusionNetModel(
+        image,
+        image,
+        image,
+        input_depth,
+        None,
+        is_training=False,
+        network_type=args.network_type_fusionnet,
+        image_filter_pct=args.image_filter_pct_fusionnet,
+        depth_filter_pct=args.depth_filter_pct_fusionnet,
+        activation_func=args.activation_func_fusionnet,
+        min_predict_depth=args.min_predict_depth,
+        max_predict_depth=args.max_predict_depth,
+        min_scale_depth=args.min_scale_depth,
+        max_scale_depth=args.max_scale_depth,
+        min_residual_depth=args.min_residual_depth,
+        max_residual_depth=args.max_residual_depth)
 
     # Initialize Tensorflow session
     config = tf.ConfigProto(allow_soft_placement=True)
@@ -173,26 +211,45 @@ with tf.Graph().as_default():
     train_saver = tf.train.Saver()
     session.run(tf.global_variables_initializer())
     session.run(tf.local_variables_initializer())
-    train_saver.restore(session, args.restore_path)
 
-    log('Evaluating {}'.format(args.restore_path), log_path)
+    vars_to_restore_scaffnet = tf.get_collection(
+        tf.GraphKeys.GLOBAL_VARIABLES,
+        scope=args.network_type_scaffnet)
+    init_assign_op_scaffnet, init_feed_dict_scaffnet = slim.assign_from_checkpoint(
+        args.restore_path_scaffnet,
+        vars_to_restore_scaffnet,
+        ignore_missing_vars=True)
+    session.run(init_assign_op_scaffnet, init_feed_dict_scaffnet)
 
-    # Load sparse depth and valid maps
+    vars_to_restore_fusionnet = tf.get_collection(
+        tf.GraphKeys.GLOBAL_VARIABLES,
+        scope=args.network_type_fusionnet)
+    init_assign_op_fusionnet, init_feed_dict_fusionnet = slim.assign_from_checkpoint(
+        args.restore_path_fusionnet,
+        vars_to_restore_fusionnet,
+        ignore_missing_vars=True)
+    session.run(init_assign_op_fusionnet, init_feed_dict_fusionnet)
+
+    log('Evaluating checkpoints: \n{} \n{}'.format(
+        args.restore_path_scaffnet, args.restore_path_fusionnet),
+        log_path)
+
+    # Load data
     dataloader.initialize(
         session,
+        image_paths=image_paths,
         sparse_depth_paths=sparse_depth_paths,
-        validity_map_paths=validity_map_paths,
-        ground_truth_paths=sparse_depth_paths,
         depth_load_multiplier=args.depth_load_multiplier,
-        do_crop=False,
+        load_image_composite=args.load_image_composite,
+        do_center_crop=False,
+        do_bottom_crop=False,
         random_horizontal_crop=False,
-        random_vertical_crop=False,
-        random_horizontal_flip=False)
+        random_vertical_crop=False)
 
     time_start = time.time()
 
     # Forward through the network
-    output_depths = run(scaffnet, session, n_sample, verbose=True)
+    output_depths = run(fusionnet, session, n_sample, verbose=True)
 
     # Measure run time
     time_elapse = time.time() - time_start
