@@ -183,6 +183,10 @@ with tf.Graph().as_default():
         max_predict_depth=args.max_predict_depth)
 
     input_depth = scaffnet.predict
+    input_depth = tf.concat([
+        input_depth,
+        tf.expand_dims(sparse_depth[..., 0], axis=-1)],
+        axis=-1)
 
     fusionnet = FusionNetModel(
         image,
@@ -242,9 +246,7 @@ with tf.Graph().as_default():
         depth_load_multiplier=args.depth_load_multiplier,
         load_image_composite=args.load_image_composite,
         do_center_crop=False,
-        do_bottom_crop=False,
-        random_horizontal_crop=False,
-        random_vertical_crop=False)
+        do_bottom_crop=False)
 
     time_start = time.time()
 

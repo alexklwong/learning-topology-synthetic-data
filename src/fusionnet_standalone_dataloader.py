@@ -55,7 +55,7 @@ class FusionNetStandaloneDataloader(object):
             self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
 
             self.dataset = tf.data.Dataset.from_tensor_slices((
-                self.image_composite_placeholder,
+                self.image_placeholder,
                 self.sparse_depth_placeholder))
 
             self.dataset = self.dataset \
@@ -94,7 +94,7 @@ class FusionNetStandaloneDataloader(object):
             image = tf.cond(
                 self.load_image_composite_placeholder,
                 lambda : self._load_image_composite_func(image_path)[0],
-                lambda : self._load_image(image_path))
+                lambda : self._load_image_func(image_path))
 
             # Load sparse depth and validity map
             sparse_depth = self._load_depth_with_validity_map_func(sparse_depth_path)
@@ -126,7 +126,7 @@ class FusionNetStandaloneDataloader(object):
 
             end_height = self.n_height + start_height
 
-            start_width = tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0)
+            start_width = tf.to_int32(tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0))
             end_width = self.n_width + start_width
 
             # Apply crop

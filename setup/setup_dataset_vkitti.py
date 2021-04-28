@@ -73,6 +73,7 @@ def process_frame(inputs):
     vkitti_ground_truth = \
         cv2.imread(vkitti_ground_truth_path, cv2.IMREAD_ANYCOLOR | cv2.IMREAD_ANYDEPTH)
 
+    # Convert Virtual KITTI ground truth to meters
     vkitti_ground_truth = vkitti_ground_truth / 100.0
 
     if kitti_validity_map.shape != vkitti_ground_truth.shape:

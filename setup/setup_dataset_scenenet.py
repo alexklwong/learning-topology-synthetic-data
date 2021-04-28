@@ -15,12 +15,13 @@ N_HEIGHT = 240
 N_WIDTH = 320
 MIN_POINTS = 360
 N_INIT_CORNER = 15000
+RANDOM_SEED = 1
 
 
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--sparse_depth_distro_type',   type=str, default='corner')
-parser.add_argument('--sequences_to_process',       nargs='+', type=int, default=-1)
+parser.add_argument('--sequences_to_process',       nargs='+', type=int, default=[-1])
 parser.add_argument('--n_points',                   type=int, default=N_CLUSTER)
 parser.add_argument('--min_points',                 type=int, default=MIN_POINTS)
 parser.add_argument('--n_height',                   type=int, default=N_HEIGHT)
@@ -68,6 +69,7 @@ def process_frame(inputs):
             max_iter=2,
             n_init=1,
             init_size=None,
+            random_state=RANDOM_SEED,
             reassignment_ratio=1e-11)
         kmeans.fit(corner_locs)
 
@@ -87,7 +89,7 @@ def process_frame(inputs):
         validity_map = np.zeros_like(image).astype(np.int16)
         validity_map[selected_indices[:, 0], selected_indices[:, 1]] = 1.0
 
-    ground_truth = data_utils.load_depth(ground_truth_path)
+    ground_truth = data_utils.load_depth(ground_truth_path, multiplier=1000)
 
     ground_truth = cv2.resize(
         ground_truth,
