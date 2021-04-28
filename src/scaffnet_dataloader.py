@@ -38,7 +38,6 @@ class ScaffNetDataloader(object):
         with tf.variable_scope(self.scope_name):
             # Set up placeholders for entry
             self.sparse_depth_placeholder = tf.placeholder(tf.string, shape=[None])
-            self.validity_map_placeholder = tf.placeholder(tf.string, shape=[None])
             self.ground_truth_placeholder = tf.placeholder(tf.string, shape=[None])
 
             # Set up placeholder for loading depth
@@ -52,7 +51,6 @@ class ScaffNetDataloader(object):
 
             self.dataset = tf.data.Dataset.from_tensor_slices((
                 self.sparse_depth_placeholder,
-                self.validity_map_placeholder,
                 self.ground_truth_placeholder))
 
             self.dataset = self.dataset \
@@ -71,18 +69,15 @@ class ScaffNetDataloader(object):
             self.next_element[1].set_shape(
                 [self.n_batch, self.n_height, self.n_width, self.n_channel])
 
-    def _load_func(self, sparse_depth_path, validity_map_path, ground_truth_path):
+    def _load_func(self, sparse_depth_path, ground_truth_path):
         '''
         Load function for:
-        (1) sparse depth
-        (2) validity map
-        (3) ground truth
+        (1) sparse depth with validity map
+        (2) ground truth
 
         Args:
             sparse_depth_path : str
                 path to sparse depth map
-            validity_map_path : str
-                path to validity map
             ground_truth_path : str
                 path to ground truth
         Returns:
@@ -92,13 +87,7 @@ class ScaffNetDataloader(object):
 
         with tf.variable_scope('load_func'):
             # Load sparse depth and validity map
-            sparse_depth = self._load_depth_func(sparse_depth_path)
-            validity_map_sparse_depth = self._load_validity_map_func(validity_map_path)
-
-            # Sparse depth and validity map pair
-            input_depth = tf.concat([
-                tf.expand_dims(sparse_depth, axis=-1),
-                tf.expand_dims(validity_map_sparse_depth, axis=-1)], axis=-1)
+            input_depth = self._load_depth_with_validity_map_func(sparse_depth_path)
 
             # Load ground-truth dense depth
             ground_truth = \
@@ -272,7 +261,6 @@ class ScaffNetDataloader(object):
 
         feed_dict = {
             self.sparse_depth_placeholder           : sparse_depth_paths,
-            self.validity_map_placeholder           : validity_map_paths,
             self.ground_truth_placeholder           : ground_truth_paths,
             self.depth_load_multiplier_placeholder  : depth_load_multiplier,
             self.crop_placeholder                   : do_crop,
@@ -290,13 +278,10 @@ if __name__ == '__main__':
     # Testing dataloader on Scenenet
     sparse_depth_filepath = os.path.join(
         'training', 'scenenet_train_sparse_depth-1.txt')
-    validity_map_filepath = os.path.join(
-        'training', 'scenenet_train_validity_map-1.txt')
     ground_truth_filepath = os.path.join(
         'training', 'scenenet_train_semi_dense_depth-1.txt')
 
     sparse_depth_paths = data_utils.read_paths(sparse_depth_filepath)
-    validity_map_paths = data_utils.read_paths(validity_map_filepath)
     ground_truth_paths = data_utils.read_paths(ground_truth_filepath)
 
     n_height = 480
@@ -310,7 +295,6 @@ if __name__ == '__main__':
     session = tf.Session()
     dataloader.initialize(session,
         sparse_depth_paths=sparse_depth_paths,
-        validity_map_paths=validity_map_paths,
         ground_truth_paths=ground_truth_paths,
         do_crop=False,
         random_horizontal_crop=False,
@@ -318,21 +302,21 @@ if __name__ == '__main__':
         random_horizontal_flip=False)
 
     n_sample = 0
-    print('Testing dataloader using paths from: \n {} \n {} \n {}'.format(
+    print('Testing dataloader using paths from: \n {} \n {}'.format(
         sparse_depth_filepath,
-        validity_map_filepath,
         ground_truth_paths))
 
     while True:
         try:
             input_depth, ground_truth = session.run(dataloader.next_element)
+
             # Test shapes
             assert input_depth.shape == (1, n_height, n_width, 2), \
                 'Path={}  Shape={}'.format(
                     sparse_depth_paths[n_sample], input_depth.shape)
             assert ground_truth.shape == (1, n_height, n_width, 2), \
                 'Path={}  Shape={}'.format(
-                    validity_map_paths[n_sample], ground_truth.shape)
+                    ground_truth_paths[n_sample], ground_truth.shape)
             # Test values
             assert not np.any(np.isnan(input_depth)), \
                 'Path={}  contains NaN values'.format(
@@ -345,25 +329,25 @@ if __name__ == '__main__':
                     sparse_depth_paths[n_sample])
             assert np.array_equal(np.unique(input_depth[..., 1]), np.array([0, 1])), \
                 'Path={}  contains values outside of [0, 1]'.format(
-                    validity_map_paths[n_sample])
+                    sparse_depth_paths[n_sample])
             assert np.sum(input_depth[..., 1]) > n_point_min, \
-                    'Path={}  contains {} (less than {}) points'.format(
-                        validity_map_paths[n_sample], np.sum(input_depth[..., 1]), n_point_min)
+                'Path={}  contains {} (less than {}) points'.format(
+                    sparse_depth_paths[n_sample], np.sum(input_depth[..., 1]), n_point_min)
             assert not np.any(np.isnan(ground_truth)), \
-                    'Path={}  contains NaN values'.format(
-                        ground_truth_paths[n_sample])
+                'Path={}  contains NaN values'.format(
+                    ground_truth_paths[n_sample])
             assert np.min(ground_truth[..., 0]) >= 0.0, \
-                    'Path={}  min value less than 0.0'.format(
-                        ground_truth_paths[n_sample])
+                'Path={}  min value less than 0.0'.format(
+                    ground_truth_paths[n_sample])
             assert np.max(ground_truth[..., 0]) <= 256.0, \
-                    'Path={}  max value greater than 256.0'.format(
-                        ground_truth_paths[n_sample])
+                'Path={}  max value greater than 256.0'.format(
+                    ground_truth_paths[n_sample])
             assert np.sum(np.where(ground_truth[..., 0] > 0.0, 1.0, 0.0)) > n_point_min, \
-                    'Path={}  contains {} (less than {}) points'.format(
-                        ground_truth_paths[n_sample], np.sum(ground_truth[..., 1]), n_point_min)
+                'Path={}  contains {} (less than {}) points'.format(
+                    ground_truth_paths[n_sample], np.sum(ground_truth[..., 1]), n_point_min)
             assert np.sum(ground_truth[..., 1]) > n_point_min, \
-                    'Path={}  contains {} (less than {}) points'.format(
-                        ground_truth_paths[n_sample], np.sum(ground_truth[..., 1]), n_point_min)
+                'Path={}  contains {} (less than {}) points'.format(
+                    ground_truth_paths[n_sample], np.sum(ground_truth[..., 1]), n_point_min)
 
             n_sample = n_sample + 1
 

@@ -13,11 +13,9 @@ from log_utils import log
 
 
 def train(train_sparse_depth_path,
-          train_validity_map_path,
           train_ground_truth_path,
           # Validation data
           val_sparse_depth_path=None,
-          val_validity_map_path=None,
           val_ground_truth_path=None,
           # Dataloader settings
           depth_load_multiplier=settings.DEPTH_LOAD_MULTIPLIER,
@@ -70,29 +68,24 @@ def train(train_sparse_depth_path,
 
     # Load sparse depth, validity map and ground truth paths from file for training
     train_sparse_depth_paths = data_utils.read_paths(train_sparse_depth_path)
-    train_validity_map_paths = data_utils.read_paths(train_validity_map_path)
     train_ground_truth_paths = data_utils.read_paths(train_ground_truth_path)
 
     n_train_sample = len(train_sparse_depth_paths)
 
-    assert n_train_sample == len(train_validity_map_paths)
     assert n_train_sample == len(train_ground_truth_paths)
 
     n_train_step = n_epoch * np.ceil(n_train_sample / n_batch).astype(np.int32)
 
     # Load sparse depth, validity map and ground truth paths from file for validation
     val_sparse_depth_paths = data_utils.read_paths(val_sparse_depth_path)
-    val_validity_map_paths = data_utils.read_paths(val_validity_map_path)
     val_ground_truth_paths = data_utils.read_paths(val_ground_truth_path)
 
     n_val_sample = len(val_sparse_depth_paths)
 
-    assert n_val_sample == len(val_validity_map_paths)
     assert n_val_sample == len(val_ground_truth_paths)
 
     # Pad validation paths based on batch size
     val_sparse_depth_paths = data_utils.pad_batch(val_sparse_depth_paths, n_batch)
-    val_validity_map_paths = data_utils.pad_batch(val_validity_map_paths, n_batch)
 
     # Load validation ground truth and do center crop
     val_ground_truths = []
@@ -260,16 +253,14 @@ def train(train_sparse_depth_path,
 
         # Shuffle data for current epoch
         train_sparse_depth_paths_epoch, \
-            train_validity_map_paths_epoch, \
             train_ground_truth_paths_epoch = data_utils.make_epoch(
-                input_arr=[train_sparse_depth_paths, train_validity_map_paths, train_ground_truth_paths],
+                input_arr=[train_sparse_depth_paths, train_ground_truth_paths],
                 n_batch=n_batch)
 
         # Feed input paths into dataloader for training
         dataloader.initialize(
             session,
             sparse_depth_paths=train_sparse_depth_paths_epoch,
-            validity_map_paths=train_validity_map_paths_epoch,
             ground_truth_paths=train_ground_truth_paths_epoch,
             depth_load_multiplier=depth_load_multiplier,
             do_crop=True,
@@ -308,7 +299,6 @@ def train(train_sparse_depth_path,
                     dataloader.initialize(
                         session,
                         sparse_depth_paths=val_sparse_depth_paths,
-                        validity_map_paths=val_validity_map_paths,
                         ground_truth_paths=val_ground_truth_paths,
                         do_crop=True,
                         random_horizontal_crop=False,
@@ -344,7 +334,6 @@ def train(train_sparse_depth_path,
                     dataloader.initialize(
                         session,
                         sparse_depth_paths=train_sparse_depth_paths_epoch[current_sample:],
-                        validity_map_paths=train_validity_map_paths_epoch[current_sample:],
                         ground_truth_paths=train_ground_truth_paths_epoch[current_sample:],
                         depth_load_multiplier=depth_load_multiplier,
                         do_crop=True,
@@ -361,16 +350,14 @@ def train(train_sparse_depth_path,
 
                 # Shuffle data for next epoch
                 train_sparse_depth_paths_epoch, \
-                    train_validity_map_paths_epoch, \
                     train_ground_truth_paths_epoch = data_utils.make_epoch(
-                        input_arr=[train_sparse_depth_paths, train_validity_map_paths, train_ground_truth_paths],
+                        input_arr=[train_sparse_depth_paths, train_ground_truth_paths],
                         n_batch=n_batch)
 
                 # Feed input paths into dataloader for training
                 dataloader.initialize(
                     session,
                     sparse_depth_paths=train_sparse_depth_paths_epoch,
-                    validity_map_paths=train_validity_map_paths_epoch,
                     ground_truth_paths=train_ground_truth_paths_epoch,
                     depth_load_multiplier=depth_load_multiplier,
                     do_crop=True,

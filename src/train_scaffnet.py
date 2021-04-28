@@ -8,14 +8,10 @@ parser = argparse.ArgumentParser()
 # Training and validation input filepaths
 parser.add_argument('--train_sparse_depth_path',
     type=str, required=True, help='Paths to training sparse depth paths')
-parser.add_argument('--train_validity_map_path',
-    type=str, required=True, help='Paths to training validity map paths')
 parser.add_argument('--train_ground_truth_path',
     type=str, required=True, help='Paths to training ground truth paths')
 parser.add_argument('--val_sparse_depth_path',
     type=str, default='', help='Paths to validation sparse depth paths')
-parser.add_argument('--val_validity_map_path',
-    type=str, default='', help='Paths to validation validity map paths')
 parser.add_argument('--val_ground_truth_path',
     type=str, default='', help='Paths to validation ground truth paths')
 # Dataloader settings
@@ -93,17 +89,13 @@ if __name__ == '__main__':
 
     args.val_sparse_depth_path = \
         None if args.val_sparse_depth_path == '' else args.val_sparse_depth_path
-    args.val_validity_map_path = \
-        None if args.val_validity_map_path == '' else args.val_validity_map_path
     args.val_ground_truth_path = \
         None if args.val_ground_truth_path == '' else args.val_ground_truth_path
 
     train(train_sparse_depth_path=args.train_sparse_depth_path,
-          train_validity_map_path=args.train_validity_map_path,
           train_ground_truth_path=args.train_ground_truth_path,
           # Validation data
           val_sparse_depth_path=args.val_sparse_depth_path,
-          val_validity_map_path=args.val_validity_map_path,
           val_ground_truth_path=args.val_ground_truth_path,
           # Dataloader settings
           depth_load_multiplier=args.depth_load_multiplier,

@@ -20,16 +20,10 @@ parser.add_argument('--restore_path',
 # Input paths
 parser.add_argument('--train_sparse_depth_path',
     type=str, required=True, help='Paths to training sparse depth paths')
-parser.add_argument('--train_validity_map_path',
-    type=str, required=True, help='Paths to training validity map paths')
 parser.add_argument('--val_sparse_depth_path',
     type=str, required=True, help='Paths to validation sparse depth paths')
-parser.add_argument('--val_validity_map_path',
-    type=str, required=True, help='Paths to validation validity map paths')
 parser.add_argument('--test_sparse_depth_path',
     type=str, required=True, help='Paths to testing sparse depth paths')
-parser.add_argument('--test_validity_map_path',
-    type=str, required=True, help='Paths to testing validity map paths')
 # Root directories
 parser.add_argument('--input_root_dirpath',
     type=str, default='', help='Root directory for input paths')
@@ -78,11 +72,8 @@ Setup for training set
 '''
 # Load training sparse depth and validity map paths from file
 train_sparse_depth_paths = data_utils.read_paths(args.train_sparse_depth_path)
-train_validity_map_paths = data_utils.read_paths(args.train_validity_map_path)
 
 n_sample = len(train_sparse_depth_paths)
-
-assert n_sample == len(train_validity_map_paths)
 
 # Get shapes of images in dataset so we can update shape of dataloader
 shapes = []
@@ -153,16 +144,13 @@ for idx in range(len(steps)):
 
         if idx < len(steps) - 1:
             sparse_depth_paths = train_sparse_depth_paths[step:steps[idx + 1]]
-            validity_map_paths = train_validity_map_paths[step:steps[idx + 1]]
         else:
             sparse_depth_paths = train_sparse_depth_paths[step:]
-            validity_map_paths = train_validity_map_paths[step:]
 
         # Load sparse depth and validity maps
         dataloader.initialize(
             session,
             sparse_depth_paths=sparse_depth_paths,
-            validity_map_paths=validity_map_paths,
             ground_truth_paths=sparse_depth_paths,
             depth_load_multiplier=args.depth_load_multiplier,
             do_crop=False,
@@ -175,8 +163,8 @@ for idx in range(len(steps)):
                 # Forward through network
                 output_depth = np.squeeze(session.run(model.predict))
 
-                assert train_validity_map_paths[n].find('validity_map'), train_validity_map_paths[n]
-                output_depth_path = train_validity_map_paths[n].replace('validity_map', 'prediction')
+                assert train_sparse_depth_paths[n].find('sparse_depth'), train_sparse_depth_paths[n]
+                output_depth_path = train_sparse_depth_paths[n].replace('sparse_depth', 'prediction')
 
                 # Replace input root directory with output root directory
                 if args.input_root_dirpath != '' and args.output_root_dirpath != '':
@@ -206,15 +194,9 @@ Setup for validation and testing set
 '''
 # Load validation sparse depth and validity map paths from file
 val_sparse_depth_paths = data_utils.read_paths(args.val_sparse_depth_path)
-val_validity_map_paths = data_utils.read_paths(args.val_validity_map_path)
-
-assert len(val_sparse_depth_paths) == len(val_validity_map_paths)
 
 # Load testing sparse depth and validity map paths from file
 test_sparse_depth_paths = data_utils.read_paths(args.test_sparse_depth_path)
-test_validity_map_paths = data_utils.read_paths(args.test_validity_map_path)
-
-assert len(test_sparse_depth_paths) == len(test_validity_map_paths)
 
 val_output_depth_paths = []
 test_output_depth_paths = []
@@ -222,19 +204,17 @@ modes = [
     [
         'validation',
         val_sparse_depth_paths,
-        val_validity_map_paths,
         val_output_depth_paths
     ], [
         'testing',
         test_sparse_depth_paths,
-        test_validity_map_paths,
         test_output_depth_paths
     ]
 ]
 
 for mode in modes:
     n = 0
-    mode_type, sparse_depth_paths, validity_map_paths, output_depth_paths = mode
+    mode_type, sparse_depth_paths, output_depth_paths = mode
     shape = np.squeeze(data_utils.load_depth(sparse_depth_paths[0])).shape
 
     n_sample = len(sparse_depth_paths)
@@ -279,7 +259,6 @@ for mode in modes:
         dataloader.initialize(
             session,
             sparse_depth_paths=sparse_depth_paths,
-            validity_map_paths=validity_map_paths,
             ground_truth_paths=sparse_depth_paths,
             depth_load_multiplier=args.depth_load_multiplier,
             do_crop=False,
@@ -291,7 +270,7 @@ for mode in modes:
             try:
                 output_depth = np.squeeze(session.run(model.predict))
 
-                output_depth_path = validity_map_paths[n].replace('validity_map', 'prediction')
+                output_depth_path = sparse_depth_paths[n].replace('sparse_depth', 'prediction')
 
                 # Replace input root directory with output root directory
                 if args.input_root_dirpath != '' and args.output_root_dirpath != '':

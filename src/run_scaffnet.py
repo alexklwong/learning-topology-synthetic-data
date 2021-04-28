@@ -25,8 +25,6 @@ parser.add_argument('--restore_path',
 # Input paths
 parser.add_argument('--sparse_depth_path',
     type=str, required=True, help='Paths to sparse depth paths')
-parser.add_argument('--validity_map_path',
-    type=str, required=True, help='Paths to validity map paths')
 parser.add_argument('--ground_truth_path',
     type=str, default='', help='Paths to ground truth paths')
 # Dataloader settings
@@ -95,16 +93,10 @@ if not os.path.exists(args.output_path):
 sparse_depth_paths = sorted(data_utils.read_paths(args.sparse_depth_path))
 sparse_depth_paths = sparse_depth_paths[args.start_idx:args.end_idx]
 
-validity_map_paths = sorted(data_utils.read_paths(args.validity_map_path))
-validity_map_paths = validity_map_paths[args.start_idx:args.end_idx]
-
 n_sample = len(sparse_depth_paths)
-
-assert n_sample == len(validity_map_paths)
 
 # Pad all paths based on batch size
 sparse_depth_paths = data_utils.pad_batch(sparse_depth_paths, args.n_batch)
-validity_map_paths = data_utils.pad_batch(validity_map_paths, args.n_batch)
 
 n_step = n_sample // args.n_batch
 
@@ -181,7 +173,6 @@ with tf.Graph().as_default():
     dataloader.initialize(
         session,
         sparse_depth_paths=sparse_depth_paths,
-        validity_map_paths=validity_map_paths,
         ground_truth_paths=sparse_depth_paths,
         depth_load_multiplier=args.depth_load_multiplier,
         do_crop=False,

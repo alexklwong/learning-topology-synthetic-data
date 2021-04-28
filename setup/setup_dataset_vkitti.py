@@ -190,13 +190,13 @@ for vkitti_sequence_dirpath in vkitti_sequence_dirpaths:
             kitti_sequence_filepaths = kitti_sequence_filepaths[0:n_vkitti_filepaths]
 
             output_sparse_depth_dirpath = os.path.join(
-                output_sequence_dirpath, kitti_sequence, camera_dirpath, 'sparse')
+                output_sequence_dirpath, kitti_sequence, camera_dirpath, 'sparse_depth')
             output_validity_map_dirpath = os.path.join(
                 output_sequence_dirpath, kitti_sequence, camera_dirpath, 'validity_map')
             output_semi_dense_depth_dirpath = os.path.join(
-                output_sequence_dirpath, kitti_sequence, camera_dirpath, 'semi_dense')
+                output_sequence_dirpath, kitti_sequence, camera_dirpath, 'semi_dense_depth')
             output_dense_depth_dirpath = os.path.join(
-                output_sequence_dirpath, kitti_sequence, camera_dirpath, 'dense')
+                output_sequence_dirpath, kitti_sequence, camera_dirpath, 'dense_depth')
             output_ground_truth_dirpath = os.path.join(
                 output_sequence_dirpath, kitti_sequence, camera_dirpath, 'ground_truth')
 
