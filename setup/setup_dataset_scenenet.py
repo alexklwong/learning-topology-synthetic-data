@@ -21,7 +21,7 @@ RANDOM_SEED = 1
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--sparse_depth_distro_type',   type=str, default='corner')
-parser.add_argument('--sequences_to_process',       nargs='+', type=int, default=[-1])
+parser.add_argument('--sequences_to_process',       nargs='+', type=int, default=[1])
 parser.add_argument('--n_points',                   type=int, default=N_CLUSTER)
 parser.add_argument('--min_points',                 type=int, default=MIN_POINTS)
 parser.add_argument('--n_height',                   type=int, default=N_HEIGHT)
@@ -101,6 +101,7 @@ def process_frame(inputs):
 
     # Shape check
     error_flag = False
+
     if np.squeeze(sparse_depth).shape != (args.n_height, args.n_width):
         error_flag = True
         print('FAILED: sparse depth height and width do not match specified values')
@@ -193,6 +194,9 @@ TRAIN_GROUND_TRUTH_OUTPUT_FILEPATH = os.path.join(
     TRAIN_OUTPUT_REF_DIRPATH,
     'scenenet_train_ground_truth_{}.txt'.format(args.sparse_depth_distro_type))
 
+
+if not os.path.exists(TRAIN_OUTPUT_REF_DIRPATH):
+    os.makedirs(TRAIN_OUTPUT_REF_DIRPATH)
 
 output_sparse_depth_paths = []
 output_validity_map_paths = []
@@ -310,34 +314,42 @@ for sequence_base_dirpath in sequence_base_dirpaths:
     output_ground_truth_filepath = \
         TRAIN_GROUND_TRUTH_OUTPUT_FILEPATH[:-4] + '-' + seq_id + '.txt'
 
-    print('Storing sparse depth file paths into: %s' % output_sparse_depth_filepath)
+    print('Storing {} sparse depth file paths into: {}'.format(
+        len(output_sequence_sparse_depth_paths), output_sparse_depth_filepath))
     data_utils.write_paths(
         output_sparse_depth_filepath, output_sequence_sparse_depth_paths)
 
-    print('Storing validity map file paths into: %s' % output_validity_map_filepath)
+    print('Storing {} validity map file paths into: {}'.format(
+        len(output_sequence_validity_map_paths), output_validity_map_filepath))
     data_utils.write_paths(
         output_validity_map_filepath, output_sequence_validity_map_paths)
 
-    print('Storing semi dense depth file paths into: %s' % output_semi_dense_depth_filepath)
+    print('Storing {} semi dense depth file paths into: {}'.format(
+        len(output_sequence_semi_dense_depth_paths), output_semi_dense_depth_filepath))
     data_utils.write_paths(
         output_semi_dense_depth_filepath, output_sequence_semi_dense_depth_paths)
 
-    print('Storing ground truth file paths into: %s' % output_ground_truth_filepath)
+    print('Storing {} ground truth file paths into: {}'.format(
+        len(output_sequence_ground_truth_paths), output_ground_truth_filepath))
     data_utils.write_paths(
         output_ground_truth_filepath, output_sequence_ground_truth_paths)
 
-print('Storing sparse depth file paths into: %s' % TRAIN_SPARSE_DEPTH_OUTPUT_FILEPATH)
+print('Storing {} sparse depth file paths into: {}'.format(
+    len(output_sparse_depth_paths), TRAIN_SPARSE_DEPTH_OUTPUT_FILEPATH))
 data_utils.write_paths(
     TRAIN_SPARSE_DEPTH_OUTPUT_FILEPATH, output_sparse_depth_paths)
 
-print('Storing valid map file paths into: %s' % TRAIN_VALIDITY_MAP_OUTPUT_FILEPATH)
+print('Storing {} validity map file paths into: {}'.format(
+    len(output_validity_map_paths), TRAIN_VALIDITY_MAP_OUTPUT_FILEPATH))
 data_utils.write_paths(
     TRAIN_VALIDITY_MAP_OUTPUT_FILEPATH, output_validity_map_paths)
 
-print('Storing semi dense depth file paths into: %s' % TRAIN_SEMI_DENSE_DEPTH_OUTPUT_FILEPATH)
+print('Storing {} semi dense depth file paths into: {}'.format(
+    len(output_semi_dense_depth_paths), TRAIN_SEMI_DENSE_DEPTH_OUTPUT_FILEPATH))
 data_utils.write_paths(
     TRAIN_SEMI_DENSE_DEPTH_OUTPUT_FILEPATH, output_semi_dense_depth_paths)
 
-print('Storing ground truth file paths into: %s' % TRAIN_GROUND_TRUTH_OUTPUT_FILEPATH)
+print('Storing {} ground truth file paths into: {}'.format(
+    len(output_ground_truth_paths), TRAIN_GROUND_TRUTH_OUTPUT_FILEPATH))
 data_utils.write_paths(
     TRAIN_GROUND_TRUTH_OUTPUT_FILEPATH, output_ground_truth_paths)
