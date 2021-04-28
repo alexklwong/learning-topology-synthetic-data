@@ -24,8 +24,8 @@ VOID_TEST_VALIDITY_MAP_FILENAME   = 'test_validity_map.txt'
 VOID_TEST_GROUND_TRUTH_FILENAME   = 'test_ground_truth.txt'
 VOID_TEST_INTRINSICS_FILENAME     = 'test_intrinsics.txt'
 
-TRAIN_REFS_DIRPATH      = 'training'
-TEST_REFS_DIRPATH       = 'testing'
+TRAIN_REFS_DIRPATH      = os.path.join('training', 'void')
+TEST_REFS_DIRPATH       = os.path.join('testing', 'void')
 
 # VOID training set 150 density
 VOID_TRAIN_IMAGE_150_FILEPATH           = os.path.join(TRAIN_REFS_DIRPATH, 'void_train_image_150.txt')
@@ -104,6 +104,13 @@ def process_frame(inputs):
             sparse_depth_outpath,
             validity_map_outpath,
             ground_truth_outpath)
+
+
+if not os.path.exists(TRAIN_REFS_DIRPATH):
+    os.makedirs(TRAIN_REFS_DIRPATH)
+
+if not os.path.exists(TEST_REFS_DIRPATH):
+    os.makedirs(TEST_REFS_DIRPATH)
 
 
 data_dirpaths = [

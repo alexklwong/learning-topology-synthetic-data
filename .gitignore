@@ -4,6 +4,9 @@ best_models_vkitti
 best_models_kitti
 best_models_scenenet
 best_models_void
+pretrained_models
+trained_fusionnet
+trained_scaffnet
 data
 setup/__pycache__
 src/__pycache__
