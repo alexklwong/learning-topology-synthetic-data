@@ -29,4 +29,4 @@ python src/train_scaffnet.py \
 --min_evaluate_depth 0.2 \
 --max_evaluate_depth 5.0 \
 --n_checkpoint 5000 \
---checkpoint_path trained_models_scenenet/scaffnet32
+--checkpoint_path trained_scaffnet/scenenet/scaffnet32
