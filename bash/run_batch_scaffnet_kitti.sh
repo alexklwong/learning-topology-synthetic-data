@@ -13,8 +13,6 @@ python src/run_scaffnet.py \
 --restore_path $1/model.ckpt-$n \
 --sparse_depth_path \
 validation/kitti/kitti_val_sparse_depth.txt \
---validity_map_path \
-validation/kitti/kitti_val_validity_map.txt \
 --ground_truth_path \
 validation/kitti/kitti_val_ground_truth.txt \
 --n_batch 8 \

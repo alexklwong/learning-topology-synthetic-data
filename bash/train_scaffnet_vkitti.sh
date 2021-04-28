@@ -4,10 +4,8 @@ export CUDA_VISIBLE_DEVICES=0
 
 python src/train_scaffnet.py \
 --train_sparse_depth_path training/vkitti/vkitti_train_sparse_depth.txt \
---train_validity_map_path training/vkitti/vkitti_train_validity_map.txt \
 --train_ground_truth_path training/vkitti/vkitti_train_ground_truth.txt \
 --val_sparse_depth_path validation/kitti/kitti_val_sparse_depth.txt \
---val_validity_map_path validation/kitti/kitti_val_validity_map.txt \
 --val_ground_truth_path validation/kitti/kitti_val_ground_truth.txt \
 --n_height 320 \
 --n_width 768 \
