@@ -4,7 +4,7 @@ export CUDA_VISIBLE_DEVICES=1
 
 python src/run_fusionnet.py \
 --restore_path \
-pretrained_models/fusionnet/kitti/fusionnet.ckpt-kitti \
+pretrained_models/fusionnet/kitti/paper/fusionnet.ckpt-kitti \
 --image_path \
 validation/kitti/kitti_val_image.txt \
 --input_depth_path \
@@ -31,5 +31,5 @@ validation/kitti/kitti_val_ground_truth.txt \
 --max_evaluate_depth 100.0 \
 --save_outputs \
 --output_path \
-pretrained_models/fusionnet/kitti/outputs \
+pretrained_models/fusionnet/kitti/paper/outputs \
 --n_thread 4

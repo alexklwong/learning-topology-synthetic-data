@@ -4,7 +4,7 @@ export CUDA_VISIBLE_DEVICES=1
 
 python src/run_scaffnet.py \
 --restore_path \
-pretrained_models/scaffnet/vkitti/scaffnet.ckpt-vkitti \
+pretrained_models/scaffnet/vkitti/paper/scaffnet.ckpt-vkitti \
 --sparse_depth_path \
 validation/kitti/kitti_val_sparse_depth.txt \
 --validity_map_path \
@@ -29,5 +29,5 @@ validation/kitti/kitti_val_ground_truth.txt \
 --max_evaluate_depth 100.0 \
 --save_outputs \
 --output_path \
-pretrained_models/scaffnet/vkitti/outputs \
+pretrained_models/scaffnet/vkitti/paper/outputs \
 --n_thread 4

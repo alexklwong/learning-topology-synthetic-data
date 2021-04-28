@@ -4,9 +4,9 @@ export CUDA_VISIBLE_DEVICES=1
 
 python src/run_fusionnet_standalone.py \
 --restore_path_scaffnet \
-pretrained_models/scaffnet/vkitti/scaffnet.ckpt-vkitti \
---restore_path_fusionnetnet \
-pretrained_models/fusionnet/kitti/fusionnet.ckpt-kitti \
+pretrained_models/scaffnet/vkitti/paper/scaffnet.ckpt-vkitti \
+--restore_path_fusionnet \
+pretrained_models/fusionnet/kitti/paper/fusionnet.ckpt-kitti \
 --image_path \
 validation/kitti/kitti_val_image.txt \
 --sparse_depth_path \
@@ -38,5 +38,5 @@ validation/kitti/kitti_val_ground_truth.txt \
 --max_evaluate_depth 100.0 \
 --save_outputs \
 --output_path \
-pretrained_models/fusionnet/kitti/standalone/outputs \
+pretrained_models/fusionnet/kitti/paper/standalone/outputs \
 --n_thread 4
