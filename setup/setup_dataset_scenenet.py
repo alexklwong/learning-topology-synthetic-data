@@ -113,16 +113,18 @@ def process_frame(inputs):
     # Validity map check
     if not np.array_equal(np.unique(validity_map), np.array([0, 1])):
         error_flag = True
-        print('FAILED: validity map contains values other than 0 or 1')
+        print('FAILED: validity map contains values ({}) other than 0 or 1'.format(
+            np.unique(validity_map)))
 
     if np.sum(validity_map) < args.min_points:
         error_flag = True
-        print('FAILED: validity map contains fewer points than miniumum point threshold')
+        print('FAILED: validity map contains fewer ({}) points than miniumum point threshold'.format(
+            np.sum(validity_map)))
 
     # Depth value check
-    if np.min(ground_truth) < 0.0 or np.max(ground_truth) > 10.0:
+    if np.min(ground_truth) < 0.0 or np.max(ground_truth) > 25.0:
         error_flag = True
-        print('FAILED: ground truth value less than 0 or greater than 20')
+        print('FAILED: min ground truth value less than 0 or greater than 25')
 
     if np.sum(np.where(sparse_depth > 0.0, 1.0, 0.0)) < args.min_points:
         error_flag = True

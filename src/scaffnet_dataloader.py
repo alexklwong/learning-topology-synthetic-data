@@ -286,7 +286,7 @@ class ScaffNetDataloader(object):
 
 
 if __name__ == '__main__':
-    import sys, os
+    import os
 
     # Testing dataloader on Scenenet
     sparse_depth_filepath = os.path.join(
@@ -339,7 +339,7 @@ if __name__ == '__main__':
                 print('Path={}  min value ({})less than 0.0'.format(
                     sparse_depth_paths[n_sample], np.min(input_depth[..., 0])))
             if np.max(input_depth[..., 0]) > 21.0:
-                print('Path={}  max value ({}) greater than 21.0 : {}'.format(
+                print('Path={}  max value ({}) greater than 21.0'.format(
                     sparse_depth_paths[n_sample], np.max(input_depth[..., 0])))
             if not np.array_equal(np.unique(input_depth[..., 1]), np.array([0, 1])):
                 print('Path={}  contains values ({}) outside of [0, 1]'.format(
