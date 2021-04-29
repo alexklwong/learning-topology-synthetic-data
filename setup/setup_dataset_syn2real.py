@@ -32,10 +32,6 @@ parser.add_argument('--output_root_dirpath',
 # Dataloader settings
 parser.add_argument('--depth_load_multiplier',
     type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
-parser.add_argument('--min_dataset_depth',
-    type=float, default=settings.MIN_DATASET_DEPTH, help='Minimum depth value for dataset')
-parser.add_argument('--max_dataset_depth',
-    type=float, default=settings.MAX_DATASET_DEPTH, help='Maximum depth value for dataset')
 # Network architecture
 parser.add_argument('--network_type',
     type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
@@ -126,8 +122,6 @@ for idx in range(len(steps)):
             n_filter_output=args.n_filter_output,
             pool_kernel_sizes_spp=args.pool_kernel_sizes_spp,
             n_convolution_spp=args.n_convolution_spp,
-            min_dataset_depth=args.min_dataset_depth,
-            max_dataset_depth=args.max_dataset_depth,
             min_predict_depth=args.min_predict_depth,
             max_predict_depth=args.max_predict_depth)
 
@@ -239,8 +233,6 @@ for mode in modes:
             n_filter_output=args.n_filter_output,
             pool_kernel_sizes_spp=args.pool_kernel_sizes_spp,
             n_convolution_spp=args.n_convolution_spp,
-            min_dataset_depth=args.min_dataset_depth,
-            max_dataset_depth=args.max_dataset_depth,
             min_predict_depth=args.min_predict_depth,
             max_predict_depth=args.max_predict_depth)
 

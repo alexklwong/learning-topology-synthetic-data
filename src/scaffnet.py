@@ -21,6 +21,7 @@ def train(train_sparse_depth_path,
           depth_load_multiplier=settings.DEPTH_LOAD_MULTIPLIER,
           min_dataset_depth=settings.MIN_DATASET_DEPTH,
           max_dataset_depth=settings.MAX_DATASET_DEPTH,
+          crop_type=settings.CROP_TYPE,
           augmentation_random_horizontal_crop=False,
           augmentation_random_vertical_crop=False,
           augmentation_random_horizontal_flip=False,
@@ -95,8 +96,13 @@ def train(train_sparse_depth_path,
             data_utils.load_depth_with_validity_map(val_ground_truth_paths[idx])
 
         # Get crop start and end positions
-        start_height = ground_truth.shape[0] - n_height
-        end_height = ground_truth.shape[0]
+        if crop_type == 'center':
+            start_height = int(float(ground_truth.shape[0] - n_height))
+        elif crop_type == 'bottom':
+            start_height = ground_truth.shape[0] - n_height
+
+        end_height = n_height + start_height
+
         start_width = int(float(ground_truth.shape[1] - n_width) / 2.0)
         end_width = n_width + start_width
 
@@ -176,6 +182,8 @@ def train(train_sparse_depth_path,
             (depth_load_multiplier), log_path)
         log('min_dataset_depth=%.2f  max_dataset_depth=%.2f' %
             (min_dataset_depth, max_dataset_depth), log_path)
+        log('crop_type=%s' %
+            (crop_type), log_path)
         log('', log_path)
 
         log('Augmentation settings:', log_path)
@@ -251,6 +259,9 @@ def train(train_sparse_depth_path,
         train_step = start_step
         step = 0
 
+        do_center_crop = True if crop_type == 'center' else False
+        do_bottom_crop = True if crop_type == 'bottom' else False
+
         # Shuffle data for current epoch
         train_sparse_depth_paths_epoch, \
             train_ground_truth_paths_epoch = data_utils.make_epoch(
@@ -263,7 +274,8 @@ def train(train_sparse_depth_path,
             sparse_depth_paths=train_sparse_depth_paths_epoch,
             ground_truth_paths=train_ground_truth_paths_epoch,
             depth_load_multiplier=depth_load_multiplier,
-            do_crop=True,
+            do_center_crop=do_center_crop,
+            do_bottom_crop=do_bottom_crop,
             random_horizontal_crop=augmentation_random_horizontal_crop,
             random_vertical_crop=augmentation_random_vertical_crop,
             random_horizontal_flip=augmentation_random_horizontal_flip)
@@ -300,7 +312,8 @@ def train(train_sparse_depth_path,
                         session,
                         sparse_depth_paths=val_sparse_depth_paths,
                         ground_truth_paths=val_ground_truth_paths,
-                        do_crop=True,
+                        do_center_crop=do_center_crop,
+                        do_bottom_crop=do_bottom_crop,
                         random_horizontal_crop=False,
                         random_vertical_crop=False,
                         random_horizontal_flip=False)
@@ -336,7 +349,8 @@ def train(train_sparse_depth_path,
                         sparse_depth_paths=train_sparse_depth_paths_epoch[current_sample:],
                         ground_truth_paths=train_ground_truth_paths_epoch[current_sample:],
                         depth_load_multiplier=depth_load_multiplier,
-                        do_crop=True,
+                        do_center_crop=do_center_crop,
+                        do_bottom_crop=do_bottom_crop,
                         random_horizontal_crop=augmentation_random_horizontal_crop,
                         random_vertical_crop=augmentation_random_vertical_crop,
                         random_horizontal_flip=augmentation_random_horizontal_flip)
@@ -360,7 +374,8 @@ def train(train_sparse_depth_path,
                     sparse_depth_paths=train_sparse_depth_paths_epoch,
                     ground_truth_paths=train_ground_truth_paths_epoch,
                     depth_load_multiplier=depth_load_multiplier,
-                    do_crop=True,
+                    do_center_crop=do_center_crop,
+                    do_bottom_crop=do_bottom_crop,
                     random_horizontal_crop=augmentation_random_horizontal_crop,
                     random_vertical_crop=augmentation_random_vertical_crop,
                     random_horizontal_flip=augmentation_random_horizontal_flip)

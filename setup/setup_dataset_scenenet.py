@@ -139,35 +139,35 @@ def process_frame(inputs):
 
     if not error_flag:
         # Generate paths
-        output_ground_truth_path = ground_truth_path \
+        derived_ground_truth_path = ground_truth_path \
             .replace(SCENENET_ROOT_DIRPATH, SCENENET_OUT_DIRPATH) \
             .replace('depth', 'ground_truth')
-        output_sparse_depth_path = ground_truth_path \
+        derived_sparse_depth_path = ground_truth_path \
             .replace(SCENENET_ROOT_DIRPATH, SCENENET_OUT_DIRPATH) \
             .replace('depth', 'sparse_depth')
-        output_validity_map_path = ground_truth_path \
+        derived_validity_map_path = ground_truth_path \
             .replace(SCENENET_ROOT_DIRPATH, SCENENET_OUT_DIRPATH) \
             .replace('depth', 'validity_map')
-        output_semi_dense_depth_path = ground_truth_path \
+        derived_semi_dense_depth_path = ground_truth_path \
             .replace(SCENENET_ROOT_DIRPATH, SCENENET_OUT_DIRPATH) \
             .replace('depth', 'semi_dense_depth')
 
         # Write to file
-        data_utils.save_validity_map(validity_map, output_validity_map_path)
-        data_utils.save_depth(sparse_depth, output_sparse_depth_path)
-        data_utils.save_depth(semi_dense_depth, output_semi_dense_depth_path)
-        data_utils.save_depth(ground_truth, output_ground_truth_path)
+        data_utils.save_validity_map(validity_map, derived_validity_map_path)
+        data_utils.save_depth(sparse_depth, derived_sparse_depth_path)
+        data_utils.save_depth(semi_dense_depth, derived_semi_dense_depth_path)
+        data_utils.save_depth(ground_truth, derived_ground_truth_path)
     else:
         print('Found error in {}'.format(ground_truth_path))
-        output_ground_truth_path = 'error'
-        output_sparse_depth_path = 'error'
-        output_validity_map_path = 'error'
-        output_semi_dense_depth_path = 'error'
+        derived_ground_truth_path = 'error'
+        derived_sparse_depth_path = 'error'
+        derived_validity_map_path = 'error'
+        derived_semi_dense_depth_path = 'error'
 
-    return (output_sparse_depth_path,
-            output_validity_map_path,
-            output_semi_dense_depth_path,
-            output_ground_truth_path)
+    return (derived_sparse_depth_path,
+            derived_validity_map_path,
+            derived_semi_dense_depth_path,
+            derived_ground_truth_path)
 
 
 '''
@@ -288,19 +288,20 @@ for sequence_base_dirpath in sequence_base_dirpaths:
                     output_ground_truth_path == 'error'
 
                 if found_error:
+                    print('Skipping sample due to error')
                     continue
+                else:
+                    # Collect filepaths
+                    output_sequence_sparse_depth_paths.append(output_sparse_depth_path)
+                    output_sequence_validity_map_paths.append(output_validity_map_path)
+                    output_sequence_semi_dense_depth_paths.append(output_semi_dense_depth_path)
+                    output_sequence_ground_truth_paths.append(output_ground_truth_path)
 
-                # Collect filepaths
-                output_sequence_sparse_depth_paths.append(output_sparse_depth_path)
-                output_sequence_validity_map_paths.append(output_validity_map_path)
-                output_sequence_semi_dense_depth_paths.append(output_semi_dense_depth_path)
-                output_sequence_ground_truth_paths.append(output_ground_truth_path)
-
-                # Do the same for the entire dataset
-                output_sparse_depth_paths.append(output_sparse_depth_path)
-                output_validity_map_paths.append(output_validity_map_path)
-                output_semi_dense_depth_paths.append(output_semi_dense_depth_path)
-                output_ground_truth_paths.append(output_ground_truth_path)
+                    # Do the same for the entire dataset
+                    output_sparse_depth_paths.append(output_sparse_depth_path)
+                    output_validity_map_paths.append(output_validity_map_path)
+                    output_semi_dense_depth_paths.append(output_semi_dense_depth_path)
+                    output_ground_truth_paths.append(output_ground_truth_path)
 
         print('Completed generating {} depth samples for sequence={}'.format(
             len(image_paths), sequence_dirpath))

@@ -34,10 +34,6 @@ parser.add_argument('--end_idx',
     type=int, default=1000, help='End of subset of samples to run')
 parser.add_argument('--depth_load_multiplier',
     type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
-parser.add_argument('--min_dataset_depth',
-    type=float, default=settings.MIN_DATASET_DEPTH, help='Minimum depth value for dataset')
-parser.add_argument('--max_dataset_depth',
-    type=float, default=settings.MAX_DATASET_DEPTH, help='Maximum depth value for dataset')
 # Batch parameters
 parser.add_argument('--n_batch',
     type=int, default=settings.N_BATCH, help='Number of samples per batch')
@@ -151,8 +147,6 @@ with tf.Graph().as_default():
         pool_kernel_sizes_spp=args.pool_kernel_sizes_spp,
         n_convolution_spp=args.n_convolution_spp,
         n_filter_spp=args.n_filter_spp,
-        min_dataset_depth=args.min_dataset_depth,
-        max_dataset_depth=args.max_dataset_depth,
         min_predict_depth=args.min_predict_depth,
         max_predict_depth=args.max_predict_depth)
 
@@ -175,7 +169,8 @@ with tf.Graph().as_default():
         sparse_depth_paths=sparse_depth_paths,
         ground_truth_paths=sparse_depth_paths,
         depth_load_multiplier=args.depth_load_multiplier,
-        do_crop=False,
+        do_center_crop=False,
+        do_bottom_crop=False,
         random_horizontal_crop=False,
         random_vertical_crop=False,
         random_horizontal_flip=False)

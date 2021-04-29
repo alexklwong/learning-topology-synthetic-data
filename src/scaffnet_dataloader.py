@@ -43,8 +43,9 @@ class ScaffNetDataloader(object):
             # Set up placeholder for loading depth
             self.depth_load_multiplier_placeholder = tf.placeholder(tf.float32, shape=())
 
-            # Set up placeholders for data augmentation
-            self.crop_placeholder = tf.placeholder(tf.bool, shape=())
+            # Set up crop and data augmentation placeholders
+            self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
+            self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
             self.random_horizontal_crop_placeholder = tf.placeholder(tf.bool, shape=())
             self.random_vertical_crop_placeholder = tf.placeholder(tf.bool, shape=())
             self.random_horizontal_flip_placeholder = tf.placeholder(tf.bool, shape=())
@@ -111,22 +112,34 @@ class ScaffNetDataloader(object):
         '''
 
         def crop_func(in0, in1, random_horizontal_crop, random_vertical_crop):
-            # Center crop to specified height and width, default bottom centered
             shape = tf.shape(in0)
-            start_height = tf.to_float(shape[0] - self.n_height)
+
+            # Center crop to specified height and width, default bottom centered
+            start_height = tf.cond(
+                self.center_crop_placeholder,
+                lambda: tf.to_int32(tf.to_float(shape[0] - self.n_height) / tf.to_float(2.0)),
+                lambda: tf.to_int32(shape[0] - self.n_height))
+
             start_width = tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0)
 
             # If we allow augmentation then do random horizontal or vertical shift for crop
             start_height = tf.cond(
-                random_vertical_crop,
-                lambda: tf.cast(tf.random_uniform([], 0.0, start_height), dtype=tf.int32),
+                tf.math.logical_and(self.center_crop_placeholder, random_vertical_crop),
+                lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * tf.to_float(start_height)), dtype=tf.int32),
                 lambda: tf.to_int32(start_height))
+
+            start_height = tf.cond(
+                tf.math.logical_and(self.bottom_crop_placeholder, random_vertical_crop),
+                lambda: tf.cast(tf.random_uniform([], 0.0, tf.to_float(start_height)), dtype=tf.int32),
+                lambda: tf.to_int32(start_height))
+
             end_height = self.n_height + start_height
 
             start_width = tf.cond(
                 random_horizontal_crop,
                 lambda: tf.cast(tf.random_uniform([], 0.0, 2.0 * start_width), dtype=tf.int32),
                 lambda: tf.to_int32(start_width))
+
             end_width = self.n_width + start_width
 
             # Apply crop
@@ -137,7 +150,7 @@ class ScaffNetDataloader(object):
 
         with tf.variable_scope('crop_func'):
             input_depth, ground_truth = tf.cond(
-                self.crop_placeholder,
+                tf.math.logical_or(self.center_crop_placeholder, self.bottom_crop_placeholder),
                 lambda: crop_func(
                     input_depth,
                     ground_truth,
@@ -252,7 +265,8 @@ class ScaffNetDataloader(object):
                    validity_map_paths=None,
                    ground_truth_paths=None,
                    depth_load_multiplier=256.0,
-                   do_crop=False,
+                   do_center_crop=False,
+                   do_bottom_crop=False,
                    random_horizontal_crop=False,
                    random_vertical_crop=False,
                    random_horizontal_flip=False):
@@ -263,7 +277,8 @@ class ScaffNetDataloader(object):
             self.sparse_depth_placeholder           : sparse_depth_paths,
             self.ground_truth_placeholder           : ground_truth_paths,
             self.depth_load_multiplier_placeholder  : depth_load_multiplier,
-            self.crop_placeholder                   : do_crop,
+            self.center_crop_placeholder            : do_center_crop,
+            self.bottom_crop_placeholder            : do_bottom_crop,
             self.random_horizontal_crop_placeholder : random_horizontal_crop,
             self.random_vertical_crop_placeholder   : random_vertical_crop,
             self.random_horizontal_flip_placeholder : random_horizontal_flip,
@@ -284,9 +299,9 @@ if __name__ == '__main__':
     sparse_depth_paths = data_utils.read_paths(sparse_depth_filepath)
     ground_truth_paths = data_utils.read_paths(ground_truth_filepath)
 
-    n_height = 480
-    n_width = 640
-    n_point_min = 1400
+    n_height = 240
+    n_width = 320
+    n_point_min = 360
 
     dataloader = ScaffNetDataloader(
         name='scaffnet_dataloader',
@@ -296,7 +311,8 @@ if __name__ == '__main__':
     dataloader.initialize(session,
         sparse_depth_paths=sparse_depth_paths,
         ground_truth_paths=ground_truth_paths,
-        do_crop=False,
+        do_center_crop=False,
+        do_bottom_crop=True,
         random_horizontal_crop=False,
         random_vertical_crop=False,
         random_horizontal_flip=False)
