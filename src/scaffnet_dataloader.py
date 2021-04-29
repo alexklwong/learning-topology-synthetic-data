@@ -325,48 +325,53 @@ if __name__ == '__main__':
             input_depth, ground_truth = session.run(dataloader.next_element)
 
             # Test shapes
-            assert input_depth.shape == (1, n_height, n_width, 2), \
-                'Path={}  Shape={}'.format(
-                    sparse_depth_paths[n_sample], input_depth.shape)
-            assert ground_truth.shape == (1, n_height, n_width, 2), \
-                'Path={}  Shape={}'.format(
-                    ground_truth_paths[n_sample], ground_truth.shape)
+            if input_depth.shape != (1, n_height, n_width, 2):
+                print('Path={}  Shape={}'.format(
+                    sparse_depth_paths[n_sample], input_depth.shape))
+            if ground_truth.shape != (1, n_height, n_width, 2):
+                print('Path={}  Shape={}'.format(
+                    ground_truth_paths[n_sample], ground_truth.shape))
             # Test values
-            assert not np.any(np.isnan(input_depth)), \
-                'Path={}  contains NaN values'.format(
-                    sparse_depth_paths[n_sample])
-            assert np.min(input_depth[..., 0]) >= 0.0, \
-                'Path={}  min value less than 0.0'.format(
-                    sparse_depth_paths[n_sample])
-            assert np.max(input_depth[..., 0]) <= 256.0, \
-                'Path={}  max value greater than 256.0'.format(
-                    sparse_depth_paths[n_sample])
-            assert np.array_equal(np.unique(input_depth[..., 1]), np.array([0, 1])), \
-                'Path={}  contains values outside of [0, 1]'.format(
-                    sparse_depth_paths[n_sample])
-            assert np.sum(input_depth[..., 1]) > n_point_min, \
-                'Path={}  contains {} (less than {}) points'.format(
-                    sparse_depth_paths[n_sample], np.sum(input_depth[..., 1]), n_point_min)
-            assert not np.any(np.isnan(ground_truth)), \
-                'Path={}  contains NaN values'.format(
-                    ground_truth_paths[n_sample])
-            assert np.min(ground_truth[..., 0]) >= 0.0, \
-                'Path={}  min value less than 0.0'.format(
-                    ground_truth_paths[n_sample])
-            assert np.max(ground_truth[..., 0]) <= 256.0, \
-                'Path={}  max value greater than 256.0'.format(
-                    ground_truth_paths[n_sample])
-            assert np.sum(np.where(ground_truth[..., 0] > 0.0, 1.0, 0.0)) > n_point_min, \
-                'Path={}  contains {} (less than {}) points'.format(
-                    ground_truth_paths[n_sample], np.sum(ground_truth[..., 1]), n_point_min)
-            assert np.sum(ground_truth[..., 1]) > n_point_min, \
-                'Path={}  contains {} (less than {}) points'.format(
-                    ground_truth_paths[n_sample], np.sum(ground_truth[..., 1]), n_point_min)
+            if np.any(np.isnan(input_depth)):
+                print('Path={}  contains NaN values'.format(
+                    sparse_depth_paths[n_sample]))
+            if np.min(input_depth[..., 0]) < 0.0:
+                print('Path={}  min value less than 0.0'.format(
+                    sparse_depth_paths[n_sample]))
+            if np.max(input_depth[..., 0]) > 20.0:
+                print('Path={}  max value greater than 20.0'.format(
+                    sparse_depth_paths[n_sample]))
+            if not np.array_equal(np.unique(input_depth[..., 1]), np.array([0, 1])), \
+                print('Path={}  contains values outside of [0, 1]'.format(
+                    sparse_depth_paths[n_sample]))
+            if np.sum(np.where(input_depth[..., 0] > 0, 1, 0)) < n_point_min:
+                print('Path={}  contains {} (less than {}) points'.format(
+                    sparse_depth_paths[n_sample], np.sum(input_depth[..., 1]), n_point_min))
+            if np.sum(input_depth[..., 1]) < n_point_min:
+                print('Path={}  contains {} (less than {}) points'.format(
+                    sparse_depth_paths[n_sample], np.sum(input_depth[..., 1]), n_point_min))
+            if np.any(np.isnan(input_depth)):
+                print('Path={}  contains NaN values'.format(
+                    sparse_depth_paths[n_sample]))
+            if np.any(np.isnan(ground_truth)):
+                print('Path={}  contains NaN values'.format(
+                    ground_truth_paths[n_sample]))
+            if np.min(ground_truth[..., 0]) < 0.0:
+                print('Path={}  min value less than 0.0'.format(
+                    ground_truth_paths[n_sample]))
+            if np.max(ground_truth[..., 0]) > 20.0:
+                print('Path={}  max value greater than 20.0'.format(
+                    ground_truth_paths[n_sample]))
+            if np.sum(np.where(ground_truth[..., 0] > 0.0, 1.0, 0.0)) < n_point_min:
+                print('Path={}  contains {} (less than {}) points'.format(
+                    ground_truth_paths[n_sample], np.sum(ground_truth[..., 1]), n_point_min))
+            if np.sum(ground_truth[..., 1]) < n_point_min:
+                print('Path={}  contains {} (less than {}) points'.format(
+                    ground_truth_paths[n_sample], np.sum(ground_truth[..., 1]), n_point_min))
 
             n_sample = n_sample + 1
 
-            sys.stdout.write('Processed {} samples...\r'.format(n_sample))
-            sys.stdout.flush()
+            print('Processed {} samples...'.format(n_sample), end='\r')
 
         except tf.errors.OutOfRangeError:
             break
