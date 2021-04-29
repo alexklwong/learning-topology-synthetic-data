@@ -105,7 +105,6 @@ class ScaffNetDataloader(object):
                 H x W x 2 input depth of sparse depth snd validity map
             ground_truth : tensor
                 H x W x 2 ground truth of sparse depth snd validity map
-
         Returns:
             tensor : h x w x 2 input depth of sparse depth snd validity map
             tensor : h x w x 2 ground truth of sparse depth snd validity map
@@ -169,7 +168,6 @@ class ScaffNetDataloader(object):
                 H x W x 2 input depth of sparse depth snd validity map
             ground_truth : tensor
                 H x W x 2 ground truth of sparse depth snd validity map
-
         Returns:
             tensor : H x W x 2 input depth of sparse depth snd validity map
             tensor : H x W x 2 ground truth of sparse depth snd validity map
