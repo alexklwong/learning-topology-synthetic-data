@@ -290,9 +290,9 @@ if __name__ == '__main__':
 
     # Testing dataloader on Scenenet
     sparse_depth_filepath = os.path.join(
-        'training', 'scenenet_train_sparse_depth-1.txt')
+        'training', 'scenenet', 'scenenet_train_sparse_depth_corner-1.txt')
     ground_truth_filepath = os.path.join(
-        'training', 'scenenet_train_semi_dense_depth-1.txt')
+        'training', 'scenenet', 'scenenet_train_ground_truth_corner-1.txt')
 
     sparse_depth_paths = data_utils.read_paths(sparse_depth_filepath)
     ground_truth_paths = data_utils.read_paths(ground_truth_filepath)
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     n_sample = 0
     print('Testing dataloader using paths from: \n {} \n {}'.format(
         sparse_depth_filepath,
-        ground_truth_paths))
+        ground_truth_filepath))
 
     while True:
         try:

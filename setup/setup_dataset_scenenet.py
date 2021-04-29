@@ -97,7 +97,7 @@ def process_frame(inputs):
         interpolation=cv2.INTER_NEAREST)
 
     sparse_depth = validity_map * ground_truth
-    semi_dense_depth = ground_truth * np.where(skmorph.convex_hull_image(validity_map), 1, 0)
+    semi_dense_depth = ground_truth  # * np.where(skmorph.convex_hull_image(validity_map), 1, 0)
 
     # Shape check
     error_flag = False
@@ -115,14 +115,18 @@ def process_frame(inputs):
         error_flag = True
         print('FAILED: validity map contains values other than 0 or 1')
 
-    if validity_map.sum() < args.min_points:
+    if np.sum(validity_map) < args.min_points:
         error_flag = True
         print('FAILED: validity map contains fewer points than miniumum point threshold')
 
     # Depth value check
-    if np.min(ground_truth) < 0.0 or np.max(ground_truth) > 256.0:
+    if np.min(ground_truth) < 0.0 or np.max(ground_truth) > 10.0:
         error_flag = True
-        print('FAILED: ground truth value less than 0 or greater than 256')
+        print('FAILED: ground truth value less than 0 or greater than 20')
+
+    if np.sum(np.where(sparse_depth > 0.0, 1.0, 0.0)) < args.min_points:
+        error_flag = True
+        print('FAILED: valid sparse depth is less than minimum point threshold', np.sum(np.where(sparse_depth > 0.0, 1.0, 0.0)))
 
     if np.sum(np.where(semi_dense_depth > 0.0, 1.0, 0.0)) < args.min_points:
         error_flag = True
@@ -133,7 +137,15 @@ def process_frame(inputs):
         print('FAILED: valid ground truth is less than minimum point threshold', np.sum(np.where(ground_truth > 0.0, 1.0, 0.0)))
 
     # NaN check
-    if np.any(np.isnan(sparse_depth)) or np.any(np.isnan(semi_dense_depth)):
+    if np.any(np.isnan(sparse_depth)):
+        error_flag = True
+        print('FAILED: found NaN in sparse depth')
+
+    if np.any(np.isnan(semi_dense_depth)):
+        error_flag = True
+        print('FAILED: found NaN in semi dense depth')
+
+    if np.any(np.isnan(ground_truth)):
         error_flag = True
         print('FAILED: found NaN in sparse depth or semi dense depth')
 
@@ -274,6 +286,7 @@ for sequence_base_dirpath in sequence_base_dirpaths:
 
         with mp.Pool() as pool:
             pool_results = pool.map(process_frame, pool_input)
+            n_generated = 0
 
             for result in pool_results:
                 output_sparse_depth_path, \
@@ -288,9 +301,10 @@ for sequence_base_dirpath in sequence_base_dirpaths:
                     output_ground_truth_path == 'error'
 
                 if found_error:
-                    print('Skipping sample due to error')
                     continue
                 else:
+                    n_generated += 1
+
                     # Collect filepaths
                     output_sequence_sparse_depth_paths.append(output_sparse_depth_path)
                     output_sequence_validity_map_paths.append(output_validity_map_path)
@@ -304,7 +318,7 @@ for sequence_base_dirpath in sequence_base_dirpaths:
                     output_ground_truth_paths.append(output_ground_truth_path)
 
         print('Completed generating {} depth samples for sequence={}'.format(
-            len(image_paths), sequence_dirpath))
+            n_generated, sequence_dirpath))
 
     output_sparse_depth_filepath = \
         TRAIN_SPARSE_DEPTH_OUTPUT_FILEPATH[:-4] + '-' + seq_id + '.txt'
