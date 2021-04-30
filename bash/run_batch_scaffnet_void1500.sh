@@ -22,13 +22,13 @@ testing/void/void_test_ground_truth_1500.txt \
 --network_type scaffnet32 \
 --activation_func leaky_relu \
 --n_filter_output 32 \
---pool_kernel_sizes_spp 5 7 9 11 \
+--pool_kernel_sizes_spp 5 7 9 11 13 \
 --n_convolution_spp 3 \
 --n_filter_spp 32 \
 --min_predict_depth 0.1 \
 --max_predict_depth 8.0 \
---min_evaluate_depth 0.0 \
---max_evaluate_depth 100.0 \
+--min_evaluate_depth 0.2 \
+--max_evaluate_depth 5.0 \
 --output_path $1/outputs \
 --n_thread 4
 done
