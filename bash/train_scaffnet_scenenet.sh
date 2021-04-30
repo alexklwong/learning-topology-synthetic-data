@@ -7,6 +7,7 @@ python src/train_scaffnet.py \
 --train_ground_truth_path training/scenenet/scenenet_train_ground_truth_corner-1.txt \
 --val_sparse_depth_path testing/void/void_test_sparse_depth_1500.txt \
 --val_ground_truth_path testing/void/void_test_ground_truth_1500.txt \
+--n_batch 8 \
 --n_height 192 \
 --n_width 288 \
 --depth_load_multiplier 256 \

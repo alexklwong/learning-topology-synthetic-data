@@ -7,6 +7,7 @@ python src/train_scaffnet.py \
 --train_ground_truth_path training/vkitti/vkitti_train_ground_truth.txt \
 --val_sparse_depth_path validation/kitti/kitti_val_sparse_depth.txt \
 --val_ground_truth_path validation/kitti/kitti_val_ground_truth.txt \
+--n_batch 8 \
 --n_height 320 \
 --n_width 768 \
 --depth_load_multiplier 256 \

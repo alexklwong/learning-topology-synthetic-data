@@ -97,7 +97,7 @@ def process_frame(inputs):
         interpolation=cv2.INTER_NEAREST)
 
     sparse_depth = validity_map * ground_truth
-    semi_dense_depth = ground_truth  # * np.where(skmorph.convex_hull_image(validity_map), 1, 0)
+    semi_dense_depth = ground_truth * np.where(skmorph.convex_hull_image(validity_map), 1, 0)
 
     # Shape check
     error_flag = False
@@ -208,6 +208,11 @@ TRAIN_GROUND_TRUTH_OUTPUT_FILEPATH = os.path.join(
     TRAIN_OUTPUT_REF_DIRPATH,
     'scenenet_train_ground_truth_{}.txt'.format(args.sparse_depth_distro_type))
 
+INVALID_SPARSE_DEPTH_PATHS = [
+    os.path.join('train', '1', '1657', 'sparse_depth', '5975'),
+    os.path.join('train', '1', '1819', 'sparse_depth', '4675')
+]
+
 
 if not os.path.exists(TRAIN_OUTPUT_REF_DIRPATH):
     os.makedirs(TRAIN_OUTPUT_REF_DIRPATH)
@@ -301,6 +306,12 @@ for sequence_base_dirpath in sequence_base_dirpaths:
                     output_validity_map_path == 'error' or \
                     output_semi_dense_depth_path == 'error' or \
                     output_ground_truth_path == 'error'
+
+                for invalid_sparse_depth_path in INVALID_SPARSE_DEPTH_PATHS:
+                    # Filter out samples known to be bad
+                    if invalid_sparse_depth_path in output_sparse_depth_path:
+                        found_error = True
+                        break
 
                 if found_error:
                     continue

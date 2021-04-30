@@ -12,12 +12,12 @@ do
 python src/run_scaffnet.py \
 --restore_path $1/model.ckpt-$n \
 --sparse_depth_path \
-validation/kitti/kitti_val_sparse_depth.txt \
+testing/void/void_test_sparse_depth_1500.txt \
 --ground_truth_path \
-validation/kitti/kitti_val_ground_truth.txt \
+testing/void/void_test_ground_truth_1500.txt \
 --n_batch 8 \
---n_height 352 \
---n_width 1216 \
+--n_height 480 \
+--n_width 640 \
 --depth_load_multiplier 256.0 \
 --network_type scaffnet32 \
 --activation_func leaky_relu \
@@ -25,8 +25,8 @@ validation/kitti/kitti_val_ground_truth.txt \
 --pool_kernel_sizes_spp 5 7 9 11 \
 --n_convolution_spp 3 \
 --n_filter_spp 32 \
---min_predict_depth 1.5 \
---max_predict_depth 100.0 \
+--min_predict_depth 0.1 \
+--max_predict_depth 8.0 \
 --min_evaluate_depth 0.0 \
 --max_evaluate_depth 100.0 \
 --output_path $1/outputs \
