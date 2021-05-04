@@ -3,16 +3,11 @@
 export CUDA_VISIBLE_DEVICES=1
 
 python src/run_fusionnet_standalone.py \
---restore_path_scaffnet \
-pretrained_models/scaffnet/vkitti/paper/scaffnet.ckpt-vkitti \
---restore_path_fusionnet \
-pretrained_models/fusionnet/kitti/paper/fusionnet.ckpt-kitti \
---image_path \
-validation/kitti/kitti_val_image.txt \
---sparse_depth_path \
-validation/kitti/kitti_val_sparse_depth.txt \
---ground_truth_path \
-validation/kitti/kitti_val_ground_truth.txt \
+--restore_path_scaffnet pretrained_models/scaffnet/vkitti/retrained/scaffnet.ckpt-vkitti \
+--restore_path_fusionnet pretrained_models/fusionnet/kitti/retrained/fusionnet.ckpt-kitti \
+--image_path validation/kitti/kitti_val_image.txt \
+--sparse_depth_path validation/kitti/kitti_val_sparse_depth.txt \
+--ground_truth_path validation/kitti/kitti_val_ground_truth.txt \
 --n_batch 8 \
 --n_height 352 \
 --n_width 1216 \
@@ -21,7 +16,7 @@ validation/kitti/kitti_val_ground_truth.txt \
 --activation_func_scaffnet leaky_relu \
 --n_filter_output_scaffnet 32 \
 --min_predict_depth 1.5 \
---max_predict_depth 1.00 \
+--max_predict_depth 100.0 \
 --pool_kernel_sizes_spp 5 7 9 11 \
 --n_convolution_spp 3 \
 --n_filter_spp 32 \
@@ -36,6 +31,5 @@ validation/kitti/kitti_val_ground_truth.txt \
 --min_evaluate_depth 0.0 \
 --max_evaluate_depth 100.0 \
 --save_outputs \
---output_path \
-pretrained_models/fusionnet/kitti/paper/standalone/outputs \
+--output_path pretrained_models/fusionnet/kitti/retrained/standalone/outputs/kitti \
 --n_thread 4

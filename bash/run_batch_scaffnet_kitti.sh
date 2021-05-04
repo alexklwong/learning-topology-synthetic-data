@@ -11,10 +11,8 @@ for n in $(seq $2 $3 $4)
 do
 python src/run_scaffnet.py \
 --restore_path $1/model.ckpt-$n \
---sparse_depth_path \
-validation/kitti/kitti_val_sparse_depth.txt \
---ground_truth_path \
-validation/kitti/kitti_val_ground_truth.txt \
+--sparse_depth_path validation/kitti/kitti_val_sparse_depth.txt \
+--ground_truth_path validation/kitti/kitti_val_ground_truth.txt \
 --n_batch 8 \
 --n_height 352 \
 --n_width 1216 \
@@ -28,6 +26,6 @@ validation/kitti/kitti_val_ground_truth.txt \
 --max_predict_depth 100.0 \
 --min_evaluate_depth 0.0 \
 --max_evaluate_depth 100.0 \
---output_path $1/outputs \
+--output_path $1/outputs/kitti \
 --n_thread 4
 done

@@ -2,15 +2,8 @@
 
 export CUDA_VISIBLE_DEVICES=1
 
-# $1 : path to directory containing checkpoints
-# $2 : first checkpoint to evaluate
-# $3 : increment between checkpoints
-# $4 : last checkpoint to evaluate
-
-for n in $(seq $2 $3 $4)
-do
 python src/run_scaffnet.py \
---restore_path $1/model.ckpt-$n \
+--restore_path pretrained_models/scaffnet/scenenet/retrained/scaffnet.ckpt-scenenet \
 --sparse_depth_path testing/void/void_test_sparse_depth_1500.txt \
 --ground_truth_path testing/void/void_test_ground_truth_1500.txt \
 --n_batch 8 \
@@ -26,6 +19,6 @@ python src/run_scaffnet.py \
 --max_predict_depth 8.0 \
 --min_evaluate_depth 0.2 \
 --max_evaluate_depth 5.0 \
---output_path $1/outputs/void1500 \
+--save_outputs \
+--output_path pretrained_models/scaffnet/vkitti/retrained/outputs/void1500 \
 --n_thread 4
-done

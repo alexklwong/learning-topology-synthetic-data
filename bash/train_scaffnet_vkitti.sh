@@ -28,5 +28,7 @@ python src/train_scaffnet.py \
 --loss_func l1_norm \
 --min_evaluate_depth 0.0 \
 --max_evaluate_depth 100.0 \
+--checkpoint_path trained_scaffnet/vkitti/scaffnet32 \
 --n_checkpoint 5000 \
---checkpoint_path trained_scaffnet/vkitti/scaffnet32
+--n_summary 5000 \
+--n_thread 8

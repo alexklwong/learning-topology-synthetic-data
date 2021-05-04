@@ -21,7 +21,7 @@ python src/train_fusionnet.py \
 --depth_filter_pct 0.25 \
 --activation_func leaky_relu \
 --min_predict_depth 1.5 \
---max_predict_depth 1.00 \
+--max_predict_depth 100.0 \
 --min_scale_depth 0.25 \
 --max_scale_depth 4.00 \
 --min_residual_depth -1000.0 \
