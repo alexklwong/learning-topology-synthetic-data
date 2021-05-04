@@ -186,9 +186,10 @@ def train(train_sparse_depth_path,
             (activation_func), log_path)
         log('n_filter_output=%s' %
             (str(n_filter_output) if n_filter_output > 0 else 'upsample'), log_path)
+        log('', log_path)
 
         log('Spatial pyramid pooling settings:', log_path)
-        log('pool_kernel_sizes_spp=[%s]  n_convolution_spp=%d  n_filter_spp=%d' %
+        log('pool_kernel_sizes_spp=[%s]' %
             (', '.join([str(i) for i in pool_kernel_sizes_spp])),
             log_path)
         log('n_convolution_spp=%d  n_filter_spp=%d' %

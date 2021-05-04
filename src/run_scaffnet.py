@@ -132,7 +132,7 @@ with tf.Graph().as_default():
         prefetch_size=(2 * args.n_thread))
 
     # Fetch the input from dataloader
-    input_depth = dataloader.next_element[0]
+    input_depth = dataloader.next_element
 
     # Build computation graph
     scaffnet = ScaffNetModel(

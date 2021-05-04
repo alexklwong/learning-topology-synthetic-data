@@ -40,9 +40,10 @@ class ScaffNetDataloader(object):
         with tf.variable_scope(self.scope_name):
             # Set up placeholders for entry
             self.sparse_depth_placeholder = tf.placeholder(tf.string, shape=[None])
-            self.ground_truth_placeholder = tf.placeholder(tf.string, shape=[None])
 
             if is_training:
+                self.ground_truth_placeholder = tf.placeholder(tf.string, shape=[None])
+
                 # Set up crop and data augmentation placeholders
                 self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
                 self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
@@ -73,13 +74,16 @@ class ScaffNetDataloader(object):
             self.iterator = self.dataset.make_initializable_iterator()
             self.next_element = self.iterator.get_next()
 
-            # Sparse depth
-            self.next_element[0].set_shape(
-                [self.n_batch, self.n_height, self.n_width, self.n_channel])
-
             if is_training:
+                # Sparse depth
+                self.next_element[0].set_shape(
+                    [self.n_batch, self.n_height, self.n_width, self.n_channel])
                 # Ground-truth dense depth
                 self.next_element[1].set_shape(
+                    [self.n_batch, self.n_height, self.n_width, self.n_channel])
+            else:
+                # Sparse depth
+                self.next_element.set_shape(
                     [self.n_batch, self.n_height, self.n_width, self.n_channel])
 
     def _load_func(self, sparse_depth_path, ground_truth_path=None):
@@ -275,7 +279,6 @@ class ScaffNetDataloader(object):
     def initialize(self,
                    session,
                    sparse_depth_paths=None,
-                   validity_map_paths=None,
                    ground_truth_paths=None,
                    do_center_crop=False,
                    do_bottom_crop=False,

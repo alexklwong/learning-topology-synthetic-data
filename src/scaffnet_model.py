@@ -66,24 +66,25 @@ class ScaffNetModel(object):
         self.loss_func = loss_func
         self.w_supervised = w_supervised
 
-        # Perform min-max cap on ground-truth
-        ground_truth_capped = tf.clip_by_value(
-            ground_truth[..., 0],
-            self.min_dataset_depth,
-            self.max_dataset_depth)
-        ground_truth_capped = tf.expand_dims(ground_truth_capped, axis=-1)
+        if is_training:
+            # Perform min-max cap on ground-truth
+            ground_truth_capped = tf.clip_by_value(
+                ground_truth[..., 0],
+                self.min_dataset_depth,
+                self.max_dataset_depth)
+            ground_truth_capped = tf.expand_dims(ground_truth_capped, axis=-1)
 
-        validity_map_ground_truth = tf.where(
-            ground_truth[..., 0] > 0,
-            tf.ones(self.shape[0:3]),
-            tf.zeros(self.shape[0:3]))
+            validity_map_ground_truth = tf.where(
+                ground_truth[..., 0] > 0,
+                tf.ones(self.shape[0:3]),
+                tf.zeros(self.shape[0:3]))
 
-        self.validity_map_ground_truth = tf.expand_dims(
-            validity_map_ground_truth * ground_truth[..., 1],
-            axis=-1)
+            self.validity_map_ground_truth = tf.expand_dims(
+                validity_map_ground_truth * ground_truth[..., 1],
+                axis=-1)
 
-        self.ground_truth = \
-            self.validity_map_ground_truth * ground_truth_capped
+            self.ground_truth = \
+                self.validity_map_ground_truth * ground_truth_capped
 
         # Perform min-max cap on sparse input
         sparse_depth_capped = tf.clip_by_value(

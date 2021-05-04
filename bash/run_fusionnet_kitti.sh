@@ -16,6 +16,7 @@ validation/kitti/kitti_val_ground_truth.txt \
 --n_batch 8 \
 --n_height 352 \
 --n_width 1216 \
+--load_image_composite \
 --network_type fusionnet05 \
 --image_filter_pct 0.75 \
 --depth_filter_pct 0.25 \

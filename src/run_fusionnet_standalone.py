@@ -180,6 +180,10 @@ with tf.Graph().as_default():
 
     input_depth = scaffnet.predict
 
+    input_depth = tf.concat(
+        [input_depth, tf.expand_dims(sparse_depth[..., 0], axis=-1)],
+        axis=-1)
+
     fusionnet = FusionNetModel(
         image0=image,
         input_depth=input_depth,
