@@ -8,10 +8,10 @@ class FusionNetModel(object):
 
     def __init__(self,
                  image0,
-                 image1,
-                 image2,
                  input_depth,
-                 intrinsics,
+                 image1=None,
+                 image2=None,
+                 intrinsics=None,
                  is_training=True,
                  # Network architecture
                  network_type=settings.NETWORK_TYPE_FUSIONNET,

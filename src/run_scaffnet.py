@@ -32,8 +32,6 @@ parser.add_argument('--start_idx',
     type=int, default=0, help='Start of subset of samples to run')
 parser.add_argument('--end_idx',
     type=int, default=1000, help='End of subset of samples to run')
-parser.add_argument('--depth_load_multiplier',
-    type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
 # Batch parameters
 parser.add_argument('--n_batch',
     type=int, default=settings.N_BATCH, help='Number of samples per batch')
@@ -48,6 +46,10 @@ parser.add_argument('--activation_func',
     type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
 parser.add_argument('--n_filter_output',
     type=int, default=settings.N_FILTER_OUTPUT_SCAFFNET, help='Number of filters to use in final full resolution output')
+parser.add_argument('--min_predict_depth',
+    type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth value to predict')
+parser.add_argument('--max_predict_depth',
+    type=float, default=settings.MAX_PREDICT_DEPTH, help='Maximum depth value to predict')
 # Spatial pyramid pooling
 parser.add_argument('--pool_kernel_sizes_spp',
     nargs='+', type=int, default=settings.POOL_KERNEL_SIZES_SPP, help='Kernel sizes for spatial pyramid pooling')
@@ -55,11 +57,6 @@ parser.add_argument('--n_convolution_spp',
     type=int, default=settings.N_CONVOLUTION_SPP, help='Number of convolutions to use to balance density vs. detail tradeoff')
 parser.add_argument('--n_filter_spp',
     type=int, default=settings.N_FILTER_SPP, help='Number of filters to use in 1 x 1 convolutions in spatial pyramid pooling')
-# Depth prediction settings
-parser.add_argument('--min_predict_depth',
-    type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth value to predict')
-parser.add_argument('--max_predict_depth',
-    type=float, default=settings.MAX_PREDICT_DEPTH, help='Maximum depth value to predict')
 # Depth evaluation settings
 parser.add_argument('--min_evaluate_depth',
     type=float, default=settings.MIN_EVALUATE_DEPTH, help='Minimum depth value evaluate')
@@ -130,6 +127,7 @@ with tf.Graph().as_default():
     dataloader = ScaffNetDataloader(
         shape=[args.n_batch, args.n_height, args.n_width, 2],
         name='scaffnet_dataloader',
+        is_training=False,
         n_thread=args.n_thread,
         prefetch_size=(2 * args.n_thread))
 
@@ -138,7 +136,6 @@ with tf.Graph().as_default():
 
     # Build computation graph
     scaffnet = ScaffNetModel(
-        input_depth,
         input_depth,
         is_training=False,
         network_type=args.network_type,
@@ -166,14 +163,7 @@ with tf.Graph().as_default():
     # Load sparse depth and valid maps
     dataloader.initialize(
         session,
-        sparse_depth_paths=sparse_depth_paths,
-        ground_truth_paths=sparse_depth_paths,
-        depth_load_multiplier=args.depth_load_multiplier,
-        do_center_crop=False,
-        do_bottom_crop=False,
-        random_horizontal_crop=False,
-        random_vertical_crop=False,
-        random_horizontal_flip=False)
+        sparse_depth_paths=sparse_depth_paths)
 
     time_start = time.time()
 

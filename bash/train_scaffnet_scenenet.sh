@@ -9,16 +9,11 @@ python src/train_scaffnet.py \
 --val_ground_truth_path testing/void/void_test_ground_truth_1500.txt \
 --n_batch 8 \
 --n_height 192 \
---n_width 288 \
---depth_load_multiplier 256 \
+--n_width 256 \
 --min_dataset_depth 0.0 \
 --max_dataset_depth 8.0 \
 --augmentation_random_horizontal_crop \
 --augmentation_random_vertical_crop \
---n_epoch 5 \
---learning_rates 5.00e-5 2.50e-5 1.00e-5 \
---learning_schedule 2 4 \
---loss_func l1_norm \
 --network_type scaffnet32 \
 --activation_func leaky_relu \
 --n_filter_output 32 \
@@ -27,6 +22,10 @@ python src/train_scaffnet.py \
 --n_filter_spp 32 \
 --min_predict_depth 0.1 \
 --max_predict_depth 8.0 \
+--learning_rates 5.00e-5 2.50e-5 1.00e-5 \
+--learning_schedule 2 4 \
+--n_epoch 5 \
+--loss_func l1_norm \
 --min_evaluate_depth 0.2 \
 --max_evaluate_depth 5.0 \
 --n_checkpoint 5000 \

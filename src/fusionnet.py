@@ -1,4 +1,4 @@
-import os, time, cv2
+import os, time
 import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -22,14 +22,24 @@ def train(train_image_path,
           val_sparse_depth_path=None,
           val_ground_truth_path=None,
           # Dataloader settings
-          depth_load_multiplier=settings.DEPTH_LOAD_MULTIPLIER,
-          crop_type=settings.CROP_TYPE,
-          augmentation_random_horizontal_crop=False,
-          augmentation_random_vertical_crop=False,
-          # Batch settings
           n_batch=settings.N_BATCH,
           n_height=settings.N_HEIGHT,
           n_width=settings.N_WIDTH,
+          crop_type=settings.CROP_TYPE,
+          augmentation_random_horizontal_crop=False,
+          augmentation_random_vertical_crop=False,
+          # Network settings
+          network_type=settings.NETWORK_TYPE_FUSIONNET,
+          image_filter_pct=settings.IMAGE_FILTER_PCT,
+          depth_filter_pct=settings.DEPTH_FILTER_PCT,
+          activation_func=settings.ACTIVATION_FUNC,
+          # Depth prediction settings
+          min_predict_depth=settings.MIN_PREDICT_DEPTH,
+          max_predict_depth=settings.MAX_PREDICT_DEPTH,
+          min_scale_depth=settings.MIN_SCALE_DEPTH,
+          max_scale_depth=settings.MAX_SCALE_DEPTH,
+          min_residual_depth=settings.MIN_RESIDUAL_DEPTH,
+          max_residual_depth=settings.MAX_RESIDUAL_DEPTH,
           # Training settings
           n_epoch=settings.N_EPOCH,
           learning_rates=settings.LEARNING_RATES,
@@ -43,18 +53,6 @@ def train(train_image_path,
           w_prior_depth=settings.W_PRIOR_DEPTH,
           residual_threshold_prior_depth=settings.RESIDUAL_THRESHOLD_PRIOR_DEPTH,
           rotation_param=settings.ROTATION_PARAM,
-          # Network settings
-          network_type=settings.NETWORK_TYPE_FUSIONNET,
-          image_filter_pct=settings.IMAGE_FILTER_PCT,
-          depth_filter_pct=settings.DEPTH_FILTER_PCT,
-          activation_func=settings.ACTIVATION_FUNC,
-          # Depth prediction settings
-          min_predict_depth=settings.MIN_PREDICT_DEPTH,
-          max_predict_depth=settings.MAX_PREDICT_DEPTH,
-          min_scale_depth=settings.MIN_SCALE_DEPTH,
-          max_scale_depth=settings.MAX_SCALE_DEPTH,
-          min_residual_depth=settings.MIN_RESIDUAL_DEPTH,
-          max_residual_depth=settings.MAX_RESIDUAL_DEPTH,
           # Depth evaluation settings
           min_evaluate_depth=settings.MIN_EVALUATE_DEPTH,
           max_evaluate_depth=settings.MAX_EVALUATE_DEPTH,
@@ -66,13 +64,6 @@ def train(train_image_path,
           # Hardware settings
           n_thread=settings.N_THREAD):
 
-    best_results = {
-        'step': -1,
-        'mae': np.infty,
-        'rmse': np.infty,
-        'imae': np.infty,
-        'irmse': np.infty
-    }
     model_path = os.path.join(checkpoint_path, 'model.ckpt')
     event_path = os.path.join(checkpoint_path, 'events')
     log_path = os.path.join(checkpoint_path, 'results.txt')
@@ -108,9 +99,6 @@ def train(train_image_path,
     val_sparse_depth_paths = data_utils.pad_batch(val_sparse_depth_paths, n_batch)
 
     # Load validation ground truth and do center crop
-    val_shape = cv2.imread(val_image_paths[0]).shape
-    val_crop = True if val_shape[0] > n_height and val_shape[1] > n_width else False
-
     val_ground_truths = []
     for idx in range(len(val_ground_truth_paths)):
         ground_truth, validity_map_ground_truth = \
@@ -121,20 +109,21 @@ def train(train_image_path,
             np.expand_dims(validity_map_ground_truth, axis=-1)],
             axis=-1)
 
-        if val_crop:
-            # Get start and end of crop
-            if crop_type == 'center':
-                start_height = int(float(ground_truth.shape[0] - n_height))
-            elif crop_type == 'bottom':
-                start_height = ground_truth.shape[0] - n_height
+        # Get start and end of crop
+        if crop_type == 'center':
+            start_height = int(float(ground_truth.shape[0] - n_height))
+        elif crop_type == 'bottom':
+            start_height = ground_truth.shape[0] - n_height
+        else:
+            start_height = 0
 
-            end_height = n_height + start_height
+        end_height = n_height + start_height
 
-            start_width = int(float(ground_truth.shape[1] - n_width) / 2.0)
-            end_width = n_width + start_width
+        start_width = int(float(ground_truth.shape[1] - n_width) / 2.0)
+        end_width = n_width + start_width
 
-            ground_truth = \
-                ground_truth[start_height:end_height, start_width:end_width, :]
+        ground_truth = \
+            ground_truth[start_height:end_height, start_width:end_width, :]
 
         val_ground_truths.append(ground_truth)
 
@@ -159,6 +148,7 @@ def train(train_image_path,
         dataloader = FusionNetDataloader(
             shape=[n_batch, n_height, n_width, 3],
             name='fusionnet_dataloader',
+            is_training=True,
             n_thread=n_thread,
             prefetch_size=2 * n_thread)
 
@@ -171,11 +161,11 @@ def train(train_image_path,
 
         # Build computation graph
         model = FusionNetModel(
-            image0,
-            image1,
-            image2,
-            input_depth,
-            intrinsics,
+            image0=image0,
+            image1=image1,
+            image2=image2,
+            input_depth=input_depth,
+            intrinsics=intrinsics,
             is_training=True,
             network_type=network_type,
             image_filter_pct=image_filter_pct,
@@ -208,19 +198,11 @@ def train(train_image_path,
             n_parameter += np.array(variable.get_shape().as_list()).prod()
 
         # Log settings
-        log('Batch settings:')
+        log('Dataloader settings:', log_path)
         log('n_batch=%d  n_height=%d  n_width=%d' %
             (n_batch, n_height, n_width), log_path)
-        log('', log_path)
-
-        log('Dataloader settings:', log_path)
-        log('depth_load_multiplier=%.2f' %
-            (depth_load_multiplier), log_path)
         log('crop_type=%s' %
             (crop_type), log_path)
-        log('', log_path)
-
-        log('Augmentation settings:', log_path)
         log('random_horizontal_crop=%s  random_vertical_crop=%s' %
             (augmentation_random_horizontal_crop, augmentation_random_vertical_crop), log_path)
         log('', log_path)
@@ -241,11 +223,6 @@ def train(train_image_path,
             (min_scale_depth, max_scale_depth), log_path)
         log('min_residual_depth=%.2f  max_residual_depth=%.2f' %
             (min_residual_depth, max_residual_depth), log_path)
-        log('', log_path)
-
-        log('Depth evaluation settings:', log_path)
-        log('min_evaluate_depth=%.2f  max_evaluate_depth=%.2f' %
-            (min_evaluate_depth, max_evaluate_depth), log_path)
         log('', log_path)
 
         log('Training settings:', log_path)
@@ -269,6 +246,11 @@ def train(train_image_path,
             (rotation_param), log_path)
         log('', log_path)
 
+        log('Depth evaluation settings:', log_path)
+        log('min_evaluate_depth=%.2f  max_evaluate_depth=%.2f' %
+            (min_evaluate_depth, max_evaluate_depth), log_path)
+        log('', log_path)
+
         log('Checkpoint settings:', log_path)
         log('checkpoint_path=%s' %
             (checkpoint_path), log_path)
@@ -285,7 +267,6 @@ def train(train_image_path,
         train_summary_writer = tf.summary.FileWriter(event_path + '-train', session.graph)
         val_summary_writer = tf.summary.FileWriter(event_path + '-val')
         train_saver = tf.train.Saver(max_to_keep=50)
-        train_saver_best = tf.train.Saver()
 
         # Initialize all variables
         session.run(tf.global_variables_initializer())
@@ -338,11 +319,10 @@ def train(train_image_path,
         # Feed input paths into dataloader for training
         dataloader.initialize(
             session,
-            image_composite_paths=train_image_paths_epoch,
+            image_paths=train_image_paths_epoch,
             input_depth_paths=train_input_depth_paths_epoch,
             sparse_depth_paths=train_sparse_depth_paths_epoch,
             intrinsics_paths=train_intrinsics_paths_epoch,
-            depth_load_multiplier=depth_load_multiplier,
             do_center_crop=do_center_crop,
             do_bottom_crop=do_bottom_crop,
             random_horizontal_crop=augmentation_random_horizontal_crop,
@@ -378,7 +358,7 @@ def train(train_image_path,
                     # Feed input paths into dataloader for validation
                     dataloader.initialize(
                         session,
-                        image_composite_paths=val_image_paths,
+                        image_paths=val_image_paths,
                         input_depth_paths=val_input_depth_paths,
                         sparse_depth_paths=val_sparse_depth_paths,
                         intrinsics_paths=train_intrinsics_paths[0:len(val_image_paths)],
@@ -397,14 +377,10 @@ def train(train_image_path,
                         step=train_step,
                         verbose=False)
 
-                    best_results = eval_utils.evaluate(
+                    eval_utils.evaluate(
                         val_output_depths,
                         val_ground_truths,
-                        best_results,
                         train_step,
-                        session=session,
-                        saver=train_saver_best,
-                        checkpoint_path=checkpoint_path,
                         log_path=log_path,
                         min_evaluate_depth=min_evaluate_depth,
                         max_evaluate_depth=max_evaluate_depth)
@@ -414,11 +390,10 @@ def train(train_image_path,
 
                     dataloader.initialize(
                         session,
-                        image_composite_paths=train_image_paths_epoch[current_sample:],
+                        image_paths=train_image_paths_epoch[current_sample:],
                         input_depth_paths=train_input_depth_paths_epoch[current_sample:],
                         sparse_depth_paths=train_sparse_depth_paths_epoch[current_sample:],
                         intrinsics_paths=train_intrinsics_paths_epoch[current_sample:],
-                        depth_load_multiplier=depth_load_multiplier,
                         do_center_crop=do_center_crop,
                         do_bottom_crop=do_bottom_crop,
                         random_horizontal_crop=augmentation_random_horizontal_crop,
@@ -446,11 +421,10 @@ def train(train_image_path,
                 # Feed input paths into dataloader for training
                 dataloader.initialize(
                     session,
-                    image_composite_paths=train_image_paths_epoch,
+                    image_paths=train_image_paths_epoch,
                     input_depth_paths=train_input_depth_paths_epoch,
                     sparse_depth_paths=train_sparse_depth_paths_epoch,
                     intrinsics_paths=train_intrinsics_paths_epoch,
-                    depth_load_multiplier=depth_load_multiplier,
                     do_center_crop=do_center_crop,
                     do_bottom_crop=do_bottom_crop,
                     random_horizontal_crop=augmentation_random_horizontal_crop,

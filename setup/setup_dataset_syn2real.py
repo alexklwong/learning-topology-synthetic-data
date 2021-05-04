@@ -29,9 +29,6 @@ parser.add_argument('--input_root_dirpath',
     type=str, default='', help='Root directory for input paths')
 parser.add_argument('--output_root_dirpath',
     type=str, default='', help='Root directory for output paths, used to replace root of input paths')
-# Dataloader settings
-parser.add_argument('--depth_load_multiplier',
-    type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
 # Network architecture
 parser.add_argument('--network_type',
     type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
@@ -106,6 +103,7 @@ for idx in range(len(steps)):
         dataloader = ScaffNetDataloader(
             shape=[1, shape[0], shape[1], 2],
             name='scaffnet_dataloader',
+            is_training=False,
             n_thread=args.n_thread,
             prefetch_size=(2 * args.n_thread))
 
@@ -114,7 +112,6 @@ for idx in range(len(steps)):
 
         # Build computation graph
         model = ScaffNetModel(
-            input_depth,
             input_depth,
             is_training=False,
             network_type=args.network_type,
@@ -144,13 +141,7 @@ for idx in range(len(steps)):
         # Load sparse depth and validity maps
         dataloader.initialize(
             session,
-            sparse_depth_paths=sparse_depth_paths,
-            ground_truth_paths=sparse_depth_paths,
-            depth_load_multiplier=args.depth_load_multiplier,
-            do_crop=False,
-            random_horizontal_crop=False,
-            random_vertical_crop=False,
-            random_horizontal_flip=False)
+            sparse_depth_paths=sparse_depth_paths)
 
         while True:
             try:
@@ -217,6 +208,7 @@ for mode in modes:
         dataloader = ScaffNetDataloader(
             shape=[1, shape[0], shape[1], 2],
             name='scaffnet_dataloader',
+            is_training=False,
             n_thread=args.n_thread,
             prefetch_size=(2 * args.n_thread))
 
@@ -225,7 +217,6 @@ for mode in modes:
 
         # Build computation graph
         model = ScaffNetModel(
-            input_depth,
             input_depth,
             is_training=False,
             network_type=args.network_type,
@@ -250,13 +241,7 @@ for mode in modes:
         # Load sparse depth and valid maps
         dataloader.initialize(
             session,
-            sparse_depth_paths=sparse_depth_paths,
-            ground_truth_paths=sparse_depth_paths,
-            depth_load_multiplier=args.depth_load_multiplier,
-            do_crop=False,
-            random_horizontal_crop=False,
-            random_vertical_crop=False,
-            random_horizontal_flip=False)
+            sparse_depth_paths=sparse_depth_paths)
 
         while True:
             try:

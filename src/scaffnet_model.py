@@ -43,7 +43,7 @@ class ScaffNetModel(object):
     '''
     def __init__(self,
                  input_depth,
-                 ground_truth,
+                 ground_truth=None,
                  is_training=True,
                  network_type=settings.NETWORK_TYPE_SCAFFNET,
                  activation_func=settings.ACTIVATION_FUNC,

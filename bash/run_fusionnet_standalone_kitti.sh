@@ -16,11 +16,12 @@ validation/kitti/kitti_val_ground_truth.txt \
 --n_batch 8 \
 --n_height 352 \
 --n_width 1216 \
---depth_load_multiplier 256.0 \
 --load_image_composite \
 --network_type_scaffnet scaffnet32 \
 --activation_func_scaffnet leaky_relu \
 --n_filter_output_scaffnet 32 \
+--min_predict_depth 1.5 \
+--max_predict_depth 1.00 \
 --pool_kernel_sizes_spp 5 7 9 11 \
 --n_convolution_spp 3 \
 --n_filter_spp 32 \
@@ -28,8 +29,6 @@ validation/kitti/kitti_val_ground_truth.txt \
 --image_filter_pct 0.75 \
 --depth_filter_pct 0.25 \
 --activation_func_fusionnet leaky_relu \
---min_predict_depth 1.5 \
---max_predict_depth 1.00 \
 --min_scale_depth 0.25 \
 --max_scale_depth 4.00 \
 --min_residual_depth -1000.0 \

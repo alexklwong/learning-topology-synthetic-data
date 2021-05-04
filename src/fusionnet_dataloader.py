@@ -1,23 +1,26 @@
 import numpy as np
 import tensorflow as tf
 import data_utils
-import global_constants as settings
 
 
 class FusionNetDataloader(object):
     '''
     Dataloader class for loading:
     (1) image at time t
-    (2) image at time t - 1
-    (3) image at time t + 1
+    (2) if training, image at time t - 1
+    (3) if training, image at time t + 1
     (4) input (predicted) depth with sparse depth at time t
-    (5) 3 x 3 intrinsics matrix
+    (5) if training, 3 x 3 intrinsics matrix
 
     Args:
         shape : list[int]
             list of [batch, height, width, channel]
         name : str
             name scope to use
+        is_training : bool
+            if set, then use training mode
+        normalize : bool
+            if set, then normalize image between [0, 1]
         n_thread : int
             number of threads to use for fetching data
         prefetch_size : int
@@ -27,14 +30,16 @@ class FusionNetDataloader(object):
     def __init__(self,
                  shape,
                  name=None,
+                 is_training=True,
                  normalize=True,
-                 n_thread=settings.N_THREAD,
-                 prefetch_size=settings.N_THREAD):
+                 n_thread=8,
+                 prefetch_size=16):
 
         self.n_batch = shape[0]
         self.n_height = shape[1]
         self.n_width = shape[2]
         self.n_channel = shape[3]
+        self.is_training = is_training
         self.normalize = normalize
         self.n_thread = n_thread
         self.prefetch_size = prefetch_size
@@ -43,65 +48,84 @@ class FusionNetDataloader(object):
 
         with tf.variable_scope(self.scope_name):
             # Set up placeholders for network inputs
-            self.image_composite_placeholder = tf.placeholder(tf.string, shape=[None])
+            self.image_placeholder = tf.placeholder(tf.string, shape=[None])
             self.input_depth_placeholder = tf.placeholder(tf.string, shape=[None])
             self.sparse_depth_placeholder = tf.placeholder(tf.string, shape=[None])
             self.intrinsics_placeholder = tf.placeholder(tf.string, shape=[None])
 
-            # Set up placeholder for loading depth
-            self.depth_load_multiplier_placeholder = tf.placeholder(tf.float32, shape=())
+            if is_training:
+                # Set up crop and data augmentation placeholders
+                self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
+                self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
+                self.random_horizontal_crop_placeholder = tf.placeholder(tf.bool, shape=())
+                self.random_vertical_crop_placeholder = tf.placeholder(tf.bool, shape=())
+            else:
+                # If we are not training, allow image triplet composite or single image
+                self.load_image_composite_placeholder = tf.placeholder(tf.bool, shape=())
 
-            # Set up crop and data augmentation placeholders
-            self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_horizontal_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_vertical_crop_placeholder = tf.placeholder(tf.bool, shape=())
+            if is_training:
+                self.dataset = tf.data.Dataset.from_tensor_slices((
+                    self.image_placeholder,
+                    self.input_depth_placeholder,
+                    self.sparse_depth_placeholder,
+                    self.intrinsics_placeholder))
 
-            self.dataset = tf.data.Dataset.from_tensor_slices((
-                self.image_composite_placeholder,
-                self.input_depth_placeholder,
-                self.sparse_depth_placeholder,
-                self.intrinsics_placeholder))
+                self.dataset = self.dataset \
+                    .map(self._load_func, num_parallel_calls=self.n_thread) \
+                    .map(self._crop_func, num_parallel_calls=self.n_thread) \
+                    .batch(self.n_batch) \
+                    .prefetch(buffer_size=self.prefetch_size)
+            else:
+                self.dataset = tf.data.Dataset.from_tensor_slices((
+                    self.image_placeholder,
+                    self.input_depth_placeholder,
+                    self.sparse_depth_placeholder))
 
-            self.dataset = self.dataset \
-                .map(self._load_func, num_parallel_calls=self.n_thread) \
-                .map(self._crop_func, num_parallel_calls=self.n_thread) \
-                .batch(self.n_batch) \
-                .prefetch(buffer_size=self.prefetch_size)
+                self.dataset = self.dataset \
+                    .map(self._load_func, num_parallel_calls=self.n_thread) \
+                    .batch(self.n_batch) \
+                    .prefetch(buffer_size=self.prefetch_size)
+
             self.iterator = self.dataset.make_initializable_iterator()
             self.next_element = self.iterator.get_next()
 
             # Image 0 (t)
             self.next_element[0].set_shape(
                 [self.n_batch, self.n_height, self.n_width, self.n_channel])
-            # Image 1 (t - 1)
-            self.next_element[1].set_shape(
-                [self.n_batch, self.n_height, self.n_width, self.n_channel])
-            # Image 2 (t + 1)
-            self.next_element[2].set_shape(
-                [self.n_batch, self.n_height, self.n_width, self.n_channel])
-            # Input depth and sparse depth
-            self.next_element[3].set_shape(
-                [self.n_batch, self.n_height, self.n_width, 2])
-            # Camera intrinsics 3x3 matrix
-            self.next_element[4].set_shape([self.n_batch, 3, 3])
+
+            if is_training:
+                # Image 1 (t - 1)
+                self.next_element[1].set_shape(
+                    [self.n_batch, self.n_height, self.n_width, self.n_channel])
+                # Image 2 (t + 1)
+                self.next_element[2].set_shape(
+                    [self.n_batch, self.n_height, self.n_width, self.n_channel])
+                # Input depth and sparse depth
+                self.next_element[3].set_shape(
+                    [self.n_batch, self.n_height, self.n_width, 2])
+                # Camera intrinsics 3x3 matrix
+                self.next_element[4].set_shape([self.n_batch, 3, 3])
+            else:
+                # Input depth and sparse depth
+                self.next_element[1].set_shape(
+                    [self.n_batch, self.n_height, self.n_width, 2])
 
     def _load_func(self,
-                   image_composite_path,
+                   image_path,
                    input_depth_path,
                    sparse_depth_path,
-                   intrinsics_path):
+                   intrinsics_path=None):
         '''
         Load function for:
         (1) image at time t
-        (2) image at time t - 1
-        (3) image at time t + 1
+        (2) if training, image at time t - 1
+        (3) if training, image at time t + 1
         (4) input depth at time t
-        (5) 3 x 3 intrinsics matrix
+        (5) if training, 3 x 3 intrinsics matrix
 
         Args:
-            image_composite_path : str
-                path to image composite (triplet)
+            image_path : str
+                path to image composite (triplet) or single image
             input_depth_path : str
                 path to dense depth map
             sparse_depth_path : str
@@ -110,16 +134,22 @@ class FusionNetDataloader(object):
                 path to 3 x 3 camera intrinsics
         Returns:
             tensor : H x W x 3 RGB image at time t
-            tensor : H x W x 3 RGB image at time t - 1
-            tensor : H x W x 3 RGB image at time t + 1
+            tensor : if training, H x W x 3 RGB image at time t - 1
+            tensor : if training, H x W x 3 RGB image at time t + 1
             tensor : H x W x 2 input (predicted) depth and sparse depth/validity map
-            tensor : 3 x 3 camera intrinsics matrix
+            tensor : if training, 3 x 3 camera intrinsics matrix
         '''
 
         with tf.variable_scope('load_func'):
-            # Load image at time 0, 1, 2
-            image0, image1, image2 = \
-                self._load_image_composite_func(image_composite_path)
+
+            if self.is_training:
+                # Load image triplet composite at time 0, 1, 2
+                image0, image1, image2 = self._load_image_composite_func(image_path)
+            else:
+                image0 = tf.cond(
+                    self.load_image_composite_placeholder,
+                    lambda : self._load_image_composite_func(image_path)[0],
+                    lambda : self._load_image_func(image_path))
 
             # Load input (predicted) depth and sparse depth
             input_depth = self._load_depth_func(input_depth_path)
@@ -131,14 +161,13 @@ class FusionNetDataloader(object):
                 tf.expand_dims(input_depth, axis=-1),
                 tf.expand_dims(sparse_depth, axis=-1)], axis=-1)
 
-            # Load camera intrinsics
-            intrinsics = self._load_intrinsics_func(intrinsics_path)
+            if self.is_training:
+                # Load camera intrinsics
+                intrinsics = self._load_intrinsics_func(intrinsics_path)
 
-            return (image0,
-                    image1,
-                    image2,
-                    input_depth,
-                    intrinsics)
+                return (image0, image1, image2, input_depth, intrinsics)
+            else:
+                return (image0, input_depth)
 
     def _crop_func(self,
                    image0,
@@ -227,11 +256,7 @@ class FusionNetDataloader(object):
                     self.random_vertical_crop_placeholder),
                 lambda: (image0, image1, image2, input_depth, intrinsics))
 
-            return (image0,
-                    image1,
-                    image2,
-                    input_depth,
-                    intrinsics)
+            return (image0, image1, image2, input_depth, intrinsics)
 
     def _load_image_composite_func(self, path):
         '''
@@ -261,6 +286,25 @@ class FusionNetDataloader(object):
 
             return tf.squeeze(image0), tf.squeeze(image1), tf.squeeze(image2)
 
+    def _load_image_func(self, path):
+        '''
+        Loads image
+
+        Args:
+            path : str
+                path to depth map
+        Returns:
+            tensor : H x W x 3 RGB image
+        '''
+
+        with tf.variable_scope('load_image_func'):
+            image = tf.to_float(tf.image.decode_png(tf.read_file(path)))
+
+            if self.normalize:
+                image = image / 255.0
+
+            return tf.squeeze(image)
+
     def _load_depth_func(self, path):
         '''
         Loads a depth map
@@ -275,7 +319,7 @@ class FusionNetDataloader(object):
         with tf.variable_scope('load_depth_func'):
             depth = tf.py_func(
                 data_utils.load_depth,
-                [path, self.depth_load_multiplier_placeholder],
+                [path],
                 [tf.float32])
 
             return tf.squeeze(depth)
@@ -313,7 +357,7 @@ class FusionNetDataloader(object):
         with tf.variable_scope('load_depth_with_validity_map_func'):
             depth, validity_map = tf.py_func(
                 data_utils.load_depth_with_validity_map,
-                [path, self.depth_load_multiplier_placeholder],
+                [path],
                 [tf.float32, tf.float32])
 
             return tf.concat([
@@ -360,11 +404,11 @@ class FusionNetDataloader(object):
 
     def initialize(self,
                    session,
-                   image_composite_paths=None,
+                   image_paths=None,
                    input_depth_paths=None,
                    sparse_depth_paths=None,
                    intrinsics_paths=None,
-                   depth_load_multiplier=256.0,
+                   load_image_composite=True,
                    do_center_crop=False,
                    do_bottom_crop=False,
                    random_horizontal_crop=False,
@@ -372,42 +416,45 @@ class FusionNetDataloader(object):
 
         assert session is not None
 
-        feed_dict = {
-            self.image_composite_placeholder        : image_composite_paths,
-            self.input_depth_placeholder            : input_depth_paths,
-            self.sparse_depth_placeholder           : sparse_depth_paths,
-            self.intrinsics_placeholder             : intrinsics_paths,
-            self.depth_load_multiplier_placeholder  : depth_load_multiplier,
-            self.center_crop_placeholder            : do_center_crop,
-            self.bottom_crop_placeholder            : do_bottom_crop,
-            self.random_horizontal_crop_placeholder : random_horizontal_crop,
-            self.random_vertical_crop_placeholder   : random_vertical_crop
-        }
+        if self.is_training:
+            feed_dict = {
+                self.image_placeholder                  : image_paths,
+                self.input_depth_placeholder            : input_depth_paths,
+                self.sparse_depth_placeholder           : sparse_depth_paths,
+                self.intrinsics_placeholder             : intrinsics_paths,
+                self.center_crop_placeholder            : do_center_crop,
+                self.bottom_crop_placeholder            : do_bottom_crop,
+                self.random_horizontal_crop_placeholder : random_horizontal_crop,
+                self.random_vertical_crop_placeholder   : random_vertical_crop
+            }
+        else:
+            feed_dict = {
+                self.image_placeholder                  : image_paths,
+                self.input_depth_placeholder            : input_depth_paths,
+                self.sparse_depth_placeholder           : sparse_depth_paths,
+                self.load_image_composite_placeholder   : load_image_composite
+            }
 
         session.run(self.iterator.initializer, feed_dict)
 
 
 if __name__ == '__main__':
-    import sys, os
+    import os
 
-    # Testing dataloader on KITTI
-    kitti_train_image_filepath = \
-        os.path.join('training', 'kitti_train_image.txt')
-    kitti_train_input_depth_filepath = \
-        os.path.join('training', 'kitti_train_predict_depth.txt')
-    kitti_train_sparse_depth_filepath = \
-        os.path.join('training', 'kitti_train_sparse_depth.txt')
-    kitti_train_intrinsics_filepath = \
-        os.path.join('training', 'kitti_train_intrinsics.txt')
+    # Testing dataloader in training mode on KITTI
+    image_filepath = \
+        os.path.join('training', 'kitti', 'kitti_train_image.txt')
+    input_depth_filepath = \
+        os.path.join('training', 'kitti', 'kitti_train_predict_depth.txt')
+    sparse_depth_filepath = \
+        os.path.join('training', 'kitti', 'kitti_train_sparse_depth.txt')
+    intrinsics_filepath = \
+        os.path.join('training', 'kitti', 'kitti_train_intrinsics.txt')
 
-    kitti_train_image_paths = \
-        data_utils.read_paths(kitti_train_image_filepath)
-    kitti_train_input_depth_paths = \
-        data_utils.read_paths(kitti_train_input_depth_filepath)
-    kitti_train_sparse_depth_paths = \
-        data_utils.read_paths(kitti_train_sparse_depth_filepath)
-    kitti_train_intrinsics_paths = \
-        data_utils.read_paths(kitti_train_intrinsics_filepath)
+    image_paths = data_utils.read_paths(image_filepath)
+    input_depth_paths = data_utils.read_paths(input_depth_filepath)
+    sparse_depth_paths = data_utils.read_paths(sparse_depth_filepath)
+    intrinsics_paths = data_utils.read_paths(intrinsics_filepath)
 
     n_height = 320
     n_width = 768
@@ -415,26 +462,28 @@ if __name__ == '__main__':
     dataloader = FusionNetDataloader(
         name='fusionnet_dataloader',
         shape=[1, n_height, n_width, 1],
+        is_training=True,
         normalize=True)
 
     session = tf.Session()
+
     dataloader.initialize(
         session,
-        image_composite_paths=kitti_train_image_paths,
-        input_depth_paths=kitti_train_input_depth_paths,
-        sparse_depth_paths=kitti_train_sparse_depth_paths,
-        intrinsics_paths=kitti_train_intrinsics_paths,
+        image_paths=image_paths,
+        input_depth_paths=input_depth_paths,
+        sparse_depth_paths=sparse_depth_paths,
+        intrinsics_paths=intrinsics_paths,
         do_center_crop=False,
         do_bottom_crop=True,
         random_horizontal_crop=True,
         random_vertical_crop=False)
 
     n_sample = 0
-    print('Testing dataloader KITTI using paths from: \n {} \n {} \n {} \n {}'.format(
-        kitti_train_image_filepath,
-        kitti_train_input_depth_filepath,
-        kitti_train_sparse_depth_filepath,
-        kitti_train_intrinsics_filepath))
+    print('Testing dataloader KITTI in training mode using paths from: \n {} \n {} \n {} \n {}'.format(
+        image_filepath,
+        input_depth_filepath,
+        sparse_depth_filepath,
+        intrinsics_filepath))
 
     while True:
         try:
@@ -442,46 +491,113 @@ if __name__ == '__main__':
                 session.run(dataloader.next_element)
 
             # Test shapes
-            assert(image0.shape == (1, n_height, n_width, 3)), \
-                'Path={} Image=0  Shape={}'.format(kitti_train_image_paths[n_sample], image0.shape)
-            assert(image1.shape == (1, n_height, n_width, 3)), \
-                'Path={} Image=1  Shape={}'.format(kitti_train_image_paths[n_sample], image1.shape)
-            assert(image2.shape == (1, n_height, n_width, 3)), \
-                'Path={} Image=2  Shape={}'.format(kitti_train_image_paths[n_sample], image2.shape)
-            assert(input_depth.shape == (1, n_height, n_width, 2)), \
-                'Path={} Shape={}'.format(kitti_train_input_depth_paths[n_sample], input_depth.shape)
-            assert(intrinsics.shape == (1, 3, 3)), \
-                'Path={} Shape={}'.format(kitti_train_intrinsics_paths[n_sample], intrinsics.shape)
+            if image0.shape != (1, n_height, n_width, 3):
+                print('Path={} Image=0  Shape={}'.format(image_paths[n_sample], image0.shape))
+            if image1.shape != (1, n_height, n_width, 3):
+                print('Path={} Image=1  Shape={}'.format(image_paths[n_sample], image1.shape))
+            if image2.shape != (1, n_height, n_width, 3):
+                print('Path={} Image=2  Shape={}'.format(image_paths[n_sample], image2.shape))
+            if input_depth.shape != (1, n_height, n_width, 2):
+                print('Path={} Shape={}'.format(input_depth_paths[n_sample], input_depth.shape))
+            if intrinsics.shape != (1, 3, 3):
+                print('Path={} Shape={}'.format(intrinsics_paths[n_sample], intrinsics.shape))
 
             # Test values
-            assert(np.min(image0) >= 0.0), \
-                'Path={} Image=0  Min={}'.format(kitti_train_image_paths[n_sample], np.min(image0))
-            assert(np.max(image0) <= 1.0), \
-                'Path={} Image=0  Max={}'.format(kitti_train_image_paths[n_sample], np.max(image0))
-            assert(np.min(image1) >= 0.0), \
-                'Path={} Image=1  Min={}'.format(kitti_train_image_paths[n_sample], np.min(image1))
-            assert(np.max(image1) <= 1.0), \
-                'Path={} Image=1  Max={}'.format(kitti_train_image_paths[n_sample], np.max(image1))
-            assert(np.min(image2) >= 0.0), \
-                'Path={} Image=2  Min={}'.format(kitti_train_image_paths[n_sample], np.min(image2))
-            assert(np.max(image2) <= 1.0), \
-                'Path={} Image=2  Max={}'.format(kitti_train_image_paths[n_sample], np.max(image2))
-            assert(np.min(input_depth[..., 0]) >= 0.0), \
-                'Path={}  Min={}'.format(kitti_train_input_depth_paths[n_sample], np.min(input_depth[..., 0]))
-            assert(np.max(input_depth[..., 0]) <= 256.0), \
-                'Path={}  Max={}'.format(kitti_train_input_depth_paths[n_sample], np.max(input_depth[..., 0]))
-
-            assert(np.min(input_depth[..., 1]) >= 0.0), \
-                'Path={}  Min={}'.format(kitti_train_sparse_depth_paths[n_sample], np.min(input_depth[..., 1]))
-            assert(np.max(input_depth[..., 1]) <= 256.0), \
-                'Path={}  Max={}'.format(kitti_train_sparse_depth_paths[n_sample], np.max(input_depth[..., 1]))
+            if np.min(image0) < 0.0:
+                print('Path={} Image=0  Min={}'.format(image_paths[n_sample], np.min(image0)))
+            if np.max(image0) > 1.0:
+                print('Path={} Image=0  Max={}'.format(image_paths[n_sample], np.max(image0)))
+            if np.min(image1) < 0.0:
+                print('Path={} Image=1  Min={}'.format(image_paths[n_sample], np.min(image1)))
+            if np.max(image1) > 1.0:
+                print('Path={} Image=1  Max={}'.format(image_paths[n_sample], np.max(image1)))
+            if np.min(image2) < 0.0:
+                print('Path={} Image=2  Min={}'.format(image_paths[n_sample], np.min(image2)))
+            if np.max(image2) > 1.0:
+                print('Path={} Image=2  Max={}'.format(image_paths[n_sample], np.max(image2)))
+            if np.min(input_depth[..., 0]) < 0.0:
+                print('Path={}  Min={}'.format(input_depth_paths[n_sample], np.min(input_depth[..., 0])))
+            if np.max(input_depth[..., 0]) > 256.0:
+                print('Path={}  Max={}'.format(input_depth_paths[n_sample], np.max(input_depth[..., 0])))
+            if np.min(input_depth[..., 1]) < 0.0:
+                print('Path={}  Min={}'.format(sparse_depth_paths[n_sample], np.min(input_depth[..., 1])))
+            if np.max(input_depth[..., 1]) > 256.0:
+                print('Path={}  Max={}'.format(sparse_depth_paths[n_sample], np.max(input_depth[..., 1])))
 
             n_sample = n_sample + 1
 
-            sys.stdout.write('Processed {} samples...\r'.format(n_sample))
-            sys.stdout.flush()
+            print('Processed {} samples...'.format(n_sample), end='\r')
 
         except tf.errors.OutOfRangeError:
             break
 
-    print('Completed tests for dataloader on KITTI using {} samples'.format(n_sample))
+    print('Completed tests for dataloader in training mode on KITTI using {} samples'.format(n_sample))
+
+    # Testing dataloader in inference mode on KITTI
+    image_filepath = \
+        os.path.join('validation', 'kitti', 'kitti_val_image.txt')
+    input_depth_filepath = \
+        os.path.join('validation', 'kitti', 'kitti_val_predict_depth.txt')
+    sparse_depth_filepath = \
+        os.path.join('validation', 'kitti', 'kitti_val_sparse_depth.txt')
+
+    image_paths = data_utils.read_paths(image_filepath)
+    input_depth_paths = data_utils.read_paths(input_depth_filepath)
+    sparse_depth_paths = data_utils.read_paths(sparse_depth_filepath)
+
+    n_height = 352
+    n_width = 1216
+
+    dataloader = FusionNetDataloader(
+        name='fusionnet_dataloader',
+        shape=[1, n_height, n_width, 1],
+        is_training=False,
+        normalize=True)
+
+    dataloader.initialize(
+        session,
+        image_paths=image_paths,
+        input_depth_paths=input_depth_paths,
+        sparse_depth_paths=sparse_depth_paths,
+        load_image_composite=True)
+
+    n_sample = 0
+    print('Testing dataloader KITTI in inference mode using paths from: \n {} \n {} \n {}'.format(
+        image_filepath,
+        input_depth_filepath,
+        sparse_depth_filepath))
+
+    while True:
+        try:
+            image0, input_depth = session.run(dataloader.next_element)
+
+            # Test shapes
+            if image0.shape != (1, n_height, n_width, 3):
+                print('Path={} Image=0  Shape={}'.format(image_paths[n_sample], image0.shape))
+            if input_depth.shape != (1, n_height, n_width, 2):
+                print('Path={} Shape={}'.format(input_depth_paths[n_sample], input_depth.shape))
+            if intrinsics.shape != (1, 3, 3):
+                print('Path={} Shape={}'.format(intrinsics_paths[n_sample], intrinsics.shape))
+
+            # Test values
+            if np.min(image0) < 0.0:
+                print('Path={} Image=0  Min={}'.format(image_paths[n_sample], np.min(image0)))
+            if np.max(image0) > 1.0:
+                print('Path={} Image=0  Max={}'.format(image_paths[n_sample], np.max(image0)))
+            if np.min(input_depth[..., 0]) < 0.0:
+                print('Path={}  Min={}'.format(input_depth_paths[n_sample], np.min(input_depth[..., 0])))
+            if np.max(input_depth[..., 0]) > 256.0:
+                print('Path={}  Max={}'.format(input_depth_paths[n_sample], np.max(input_depth[..., 0])))
+            if np.min(input_depth[..., 1]) < 0.0:
+                print('Path={}  Min={}'.format(sparse_depth_paths[n_sample], np.min(input_depth[..., 1])))
+            if np.max(input_depth[..., 1]) > 256.0:
+                print('Path={}  Max={}'.format(sparse_depth_paths[n_sample], np.max(input_depth[..., 1])))
+
+            n_sample = n_sample + 1
+
+            print('Processed {} samples...'.format(n_sample), end='\r')
+
+        except tf.errors.OutOfRangeError:
+            break
+
+    print('Completed tests for dataloader in inference mode on KITTI using {} samples'.format(n_sample))

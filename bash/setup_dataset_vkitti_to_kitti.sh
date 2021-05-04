@@ -11,7 +11,6 @@ training/kitti/kitti_train_sparse_depth-clean.txt \
 validation/kitti/kitti_val_sparse_depth.txt \
 --test_sparse_depth_path \
 testing/kitti/kitti_test_sparse_depth.txt \
---depth_load_multiplier 256.0 \
 --network_type scaffnet32 \
 --activation_func leaky_relu \
 --n_filter_output 32 \

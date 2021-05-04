@@ -23,21 +23,40 @@ parser.add_argument('--val_sparse_depth_path',
 parser.add_argument('--val_ground_truth_path',
     type=str, default='', help='Paths to validation ground truth paths')
 # Dataloader settings
-parser.add_argument('--depth_load_multiplier',
-    type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
-parser.add_argument('--crop_type',
-    type=str, default=settings.CROP_TYPE, help='Crop to perform when loading data')
-parser.add_argument('--augmentation_random_horizontal_crop',
-    action='store_true', help='If set, perform random crop in horizontal direction for augmentation')
-parser.add_argument('--augmentation_random_vertical_crop',
-    action='store_true', help='If set, perform random crop in vertical direction for augmentation')
-# Batch parameters
 parser.add_argument('--n_batch',
     type=int, default=settings.N_BATCH, help='Number of samples per batch')
 parser.add_argument('--n_height',
     type=int, default=settings.N_HEIGHT, help='Height of each sample')
 parser.add_argument('--n_width',
     type=int, default=settings.N_WIDTH, help='Width of each sample')
+parser.add_argument('--crop_type',
+    type=str, default=settings.CROP_TYPE, help='Crop to perform when loading data')
+parser.add_argument('--augmentation_random_horizontal_crop',
+    action='store_true', help='If set, perform random crop in horizontal direction for augmentation')
+parser.add_argument('--augmentation_random_vertical_crop',
+    action='store_true', help='If set, perform random crop in vertical direction for augmentation')
+# Network architecture
+parser.add_argument('--network_type',
+    type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
+parser.add_argument('--image_filter_pct',
+    type=float, default=settings.IMAGE_FILTER_PCT, help='Percentage of filters to use for image branch')
+parser.add_argument('--depth_filter_pct',
+    type=float, default=settings.DEPTH_FILTER_PCT, help='Percentage of filters to use for depth branch')
+parser.add_argument('--activation_func',
+    type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
+# Depth prediction settings
+parser.add_argument('--min_predict_depth',
+    type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth prediction value')
+parser.add_argument('--max_predict_depth',
+    type=float, default=settings.MAX_PREDICT_DEPTH, help='Maximum depth prediction value')
+parser.add_argument('--min_scale_depth',
+    type=float, default=settings.MIN_SCALE_DEPTH, help='Minimum depth scale value')
+parser.add_argument('--max_scale_depth',
+    type=float, default=settings.MAX_SCALE_DEPTH, help='Maximum depth scale value')
+parser.add_argument('--min_residual_depth',
+    type=float, default=settings.MIN_RESIDUAL_DEPTH, help='Minimum depth residual value')
+parser.add_argument('--max_residual_depth',
+    type=float, default=settings.MAX_RESIDUAL_DEPTH, help='Maximum depth residual value')
 # Training settings
 parser.add_argument('--learning_rates',
     nargs='+', type=float, default=settings.LEARNING_RATES, help='Comma delimited learning rates')
@@ -62,28 +81,6 @@ parser.add_argument('--rotation_param',
     type=str, default=settings.ROTATION_PARAM, help='Rotation parameterization')
 parser.add_argument('--residual_threshold_prior_depth',
     type=float, default=settings.RESIDUAL_THRESHOLD_PRIOR_DEPTH, help='Residual threshold to use depth prior')
-# Network architecture
-parser.add_argument('--network_type',
-    type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
-parser.add_argument('--image_filter_pct',
-    type=float, default=settings.IMAGE_FILTER_PCT, help='Percentage of filters to use for image branch')
-parser.add_argument('--depth_filter_pct',
-    type=float, default=settings.DEPTH_FILTER_PCT, help='Percentage of filters to use for depth branch')
-parser.add_argument('--activation_func',
-    type=str, default=settings.ACTIVATION_FUNC, help='Activation function for network')
-# Depth prediction settings
-parser.add_argument('--min_predict_depth',
-    type=float, default=settings.MIN_PREDICT_DEPTH, help='Minimum depth prediction value')
-parser.add_argument('--max_predict_depth',
-    type=float, default=settings.MAX_PREDICT_DEPTH, help='Maximum depth prediction value')
-parser.add_argument('--min_scale_depth',
-    type=float, default=settings.MIN_SCALE_DEPTH, help='Minimum depth scale value')
-parser.add_argument('--max_scale_depth',
-    type=float, default=settings.MAX_SCALE_DEPTH, help='Maximum depth scale value')
-parser.add_argument('--min_residual_depth',
-    type=float, default=settings.MIN_RESIDUAL_DEPTH, help='Minimum depth residual value')
-parser.add_argument('--max_residual_depth',
-    type=float, default=settings.MAX_RESIDUAL_DEPTH, help='Maximum depth residual value')
 # Depth evaluation settings
 parser.add_argument('--min_evaluate_depth',
     type=float, default=settings.MIN_EVALUATE_DEPTH, help='Minimum depth value evaluate')
@@ -128,14 +125,24 @@ if __name__ == '__main__':
           val_sparse_depth_path=args.val_sparse_depth_path,
           val_ground_truth_path=args.val_ground_truth_path,
           # Dataloader settings
-          depth_load_multiplier=args.depth_load_multiplier,
-          crop_type=args.crop_type,
-          augmentation_random_horizontal_crop=args.augmentation_random_horizontal_crop,
-          augmentation_random_vertical_crop=args.augmentation_random_vertical_crop,
-          # Batch settings
           n_batch=args.n_batch,
           n_height=args.n_height,
           n_width=args.n_width,
+          crop_type=args.crop_type,
+          augmentation_random_horizontal_crop=args.augmentation_random_horizontal_crop,
+          augmentation_random_vertical_crop=args.augmentation_random_vertical_crop,
+          # Network settings
+          network_type=args.network_type,
+          image_filter_pct=args.image_filter_pct,
+          depth_filter_pct=args.depth_filter_pct,
+          activation_func=args.activation_func,
+          # Depth prediction settings
+          min_predict_depth=args.min_predict_depth,
+          max_predict_depth=args.max_predict_depth,
+          min_scale_depth=args.min_scale_depth,
+          max_scale_depth=args.max_scale_depth,
+          min_residual_depth=args.min_residual_depth,
+          max_residual_depth=args.max_residual_depth,
           # Training settings
           n_epoch=args.n_epoch,
           learning_rates=args.learning_rates,
@@ -149,18 +156,6 @@ if __name__ == '__main__':
           w_prior_depth=args.w_prior_depth,
           rotation_param=args.rotation_param,
           residual_threshold_prior_depth=args.residual_threshold_prior_depth,
-          # Network settings
-          network_type=args.network_type,
-          image_filter_pct=args.image_filter_pct,
-          depth_filter_pct=args.depth_filter_pct,
-          activation_func=args.activation_func,
-          # Depth prediction settings
-          min_predict_depth=args.min_predict_depth,
-          max_predict_depth=args.max_predict_depth,
-          min_scale_depth=args.min_scale_depth,
-          max_scale_depth=args.max_scale_depth,
-          min_residual_depth=args.min_residual_depth,
-          max_residual_depth=args.max_residual_depth,
           # Depth evaluation settings
           min_evaluate_depth=args.min_evaluate_depth,
           max_evaluate_depth=args.max_evaluate_depth,

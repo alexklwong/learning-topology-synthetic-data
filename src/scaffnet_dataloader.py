@@ -23,6 +23,7 @@ class ScaffNetDataloader(object):
     def __init__(self,
                  shape,
                  name=None,
+                 is_training=True,
                  n_thread=settings.N_THREAD,
                  prefetch_size=settings.N_THREAD):
 
@@ -30,6 +31,7 @@ class ScaffNetDataloader(object):
         self.n_height = shape[1]
         self.n_width = shape[2]
         self.n_channel = shape[3]
+        self.is_training = is_training
         self.n_thread = n_thread
         self.prefetch_size = prefetch_size
 
@@ -40,41 +42,51 @@ class ScaffNetDataloader(object):
             self.sparse_depth_placeholder = tf.placeholder(tf.string, shape=[None])
             self.ground_truth_placeholder = tf.placeholder(tf.string, shape=[None])
 
-            # Set up placeholder for loading depth
-            self.depth_load_multiplier_placeholder = tf.placeholder(tf.float32, shape=())
+            if is_training:
+                # Set up crop and data augmentation placeholders
+                self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
+                self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
+                self.random_horizontal_crop_placeholder = tf.placeholder(tf.bool, shape=())
+                self.random_vertical_crop_placeholder = tf.placeholder(tf.bool, shape=())
+                self.random_horizontal_flip_placeholder = tf.placeholder(tf.bool, shape=())
 
-            # Set up crop and data augmentation placeholders
-            self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_horizontal_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_vertical_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.random_horizontal_flip_placeholder = tf.placeholder(tf.bool, shape=())
+            if is_training:
+                self.dataset = tf.data.Dataset.from_tensor_slices((
+                    self.sparse_depth_placeholder,
+                    self.ground_truth_placeholder))
 
-            self.dataset = tf.data.Dataset.from_tensor_slices((
-                self.sparse_depth_placeholder,
-                self.ground_truth_placeholder))
-
-            self.dataset = self.dataset \
+                self.dataset = self.dataset \
                     .map(self._load_func, num_parallel_calls=self.n_thread) \
                     .map(self._crop_func, num_parallel_calls=self.n_thread) \
                     .map(self._horizontal_flip_func, num_parallel_calls=self.n_thread) \
                     .batch(self.n_batch) \
                     .prefetch(buffer_size=self.prefetch_size)
+            else:
+                self.dataset = tf.data.Dataset.from_tensor_slices((
+                    self.sparse_depth_placeholder))
+
+                self.dataset = self.dataset \
+                    .map(self._load_func, num_parallel_calls=self.n_thread) \
+                    .batch(self.n_batch) \
+                    .prefetch(buffer_size=self.prefetch_size)
+
             self.iterator = self.dataset.make_initializable_iterator()
             self.next_element = self.iterator.get_next()
 
             # Sparse depth
             self.next_element[0].set_shape(
                 [self.n_batch, self.n_height, self.n_width, self.n_channel])
-            # Ground-truth dense depth
-            self.next_element[1].set_shape(
-                [self.n_batch, self.n_height, self.n_width, self.n_channel])
 
-    def _load_func(self, sparse_depth_path, ground_truth_path):
+            if is_training:
+                # Ground-truth dense depth
+                self.next_element[1].set_shape(
+                    [self.n_batch, self.n_height, self.n_width, self.n_channel])
+
+    def _load_func(self, sparse_depth_path, ground_truth_path=None):
         '''
         Load function for:
         (1) sparse depth with validity map
-        (2) ground truth
+        (2) if training, ground truth
 
         Args:
             sparse_depth_path : str
@@ -83,18 +95,21 @@ class ScaffNetDataloader(object):
                 path to ground truth
         Returns:
             tensor : H x W x 2 input depth of sparse depth and validity map
-            tensor : H x W x 2 ground truth and validity map
+            tensor : if training, H x W x 2 ground truth and validity map
         '''
 
         with tf.variable_scope('load_func'):
             # Load sparse depth and validity map
             input_depth = self._load_depth_with_validity_map_func(sparse_depth_path)
 
-            # Load ground-truth dense depth
-            ground_truth = \
-                self._load_depth_with_validity_map_func(ground_truth_path)
+            if self.is_training:
+                # Load ground-truth dense depth
+                ground_truth = \
+                    self._load_depth_with_validity_map_func(ground_truth_path)
 
-            return input_depth, ground_truth
+                return input_depth, ground_truth
+            else:
+                return input_depth
 
     def _crop_func(self, input_depth, ground_truth):
         '''
@@ -212,7 +227,7 @@ class ScaffNetDataloader(object):
         with tf.variable_scope('load_depth_func'):
             depth = tf.py_func(
                 data_utils.load_depth,
-                [path, self.depth_load_multiplier_placeholder],
+                [path],
                 [tf.float32])
 
             return tf.squeeze(depth)
@@ -250,7 +265,7 @@ class ScaffNetDataloader(object):
         with tf.variable_scope('load_depth_with_validity_map_func'):
             depth, validity_map = tf.py_func(
                 data_utils.load_depth_with_validity_map,
-                [path, self.depth_load_multiplier_placeholder],
+                [path],
                 [tf.float32, tf.float32])
 
             return tf.concat([
@@ -262,7 +277,6 @@ class ScaffNetDataloader(object):
                    sparse_depth_paths=None,
                    validity_map_paths=None,
                    ground_truth_paths=None,
-                   depth_load_multiplier=256.0,
                    do_center_crop=False,
                    do_bottom_crop=False,
                    random_horizontal_crop=False,
@@ -271,16 +285,20 @@ class ScaffNetDataloader(object):
 
         assert session is not None
 
-        feed_dict = {
-            self.sparse_depth_placeholder           : sparse_depth_paths,
-            self.ground_truth_placeholder           : ground_truth_paths,
-            self.depth_load_multiplier_placeholder  : depth_load_multiplier,
-            self.center_crop_placeholder            : do_center_crop,
-            self.bottom_crop_placeholder            : do_bottom_crop,
-            self.random_horizontal_crop_placeholder : random_horizontal_crop,
-            self.random_vertical_crop_placeholder   : random_vertical_crop,
-            self.random_horizontal_flip_placeholder : random_horizontal_flip,
-        }
+        if self.is_training:
+            feed_dict = {
+                self.sparse_depth_placeholder           : sparse_depth_paths,
+                self.ground_truth_placeholder           : ground_truth_paths,
+                self.center_crop_placeholder            : do_center_crop,
+                self.bottom_crop_placeholder            : do_bottom_crop,
+                self.random_horizontal_crop_placeholder : random_horizontal_crop,
+                self.random_vertical_crop_placeholder   : random_vertical_crop,
+                self.random_horizontal_flip_placeholder : random_horizontal_flip,
+            }
+        else:
+            feed_dict = {
+                self.sparse_depth_placeholder           : sparse_depth_paths
+            }
 
         session.run(self.iterator.initializer, feed_dict)
 
@@ -288,7 +306,7 @@ class ScaffNetDataloader(object):
 if __name__ == '__main__':
     import os
 
-    # Testing dataloader on Scenenet
+    # Testing dataloader in training mode on Scenenet
     sparse_depth_filepath = os.path.join(
         'training', 'scenenet', 'scenenet_train_sparse_depth_corner-1.txt')
     ground_truth_filepath = os.path.join(
@@ -303,10 +321,13 @@ if __name__ == '__main__':
 
     dataloader = ScaffNetDataloader(
         name='scaffnet_dataloader',
-        shape=[1, n_height, n_width, 1])
+        shape=[1, n_height, n_width, 1],
+        is_training=True)
 
     session = tf.Session()
-    dataloader.initialize(session,
+
+    dataloader.initialize(
+        session,
         sparse_depth_paths=sparse_depth_paths,
         ground_truth_paths=ground_truth_paths,
         do_center_crop=False,
@@ -316,7 +337,7 @@ if __name__ == '__main__':
         random_horizontal_flip=False)
 
     n_sample = 0
-    print('Testing dataloader using paths from: \n {} \n {}'.format(
+    print('Testing dataloader in training mode using paths from: \n {} \n {}'.format(
         sparse_depth_filepath,
         ground_truth_filepath))
 
@@ -376,4 +397,66 @@ if __name__ == '__main__':
         except tf.errors.OutOfRangeError:
             break
 
-    print('Completed tests for dataloader using {} samples'.format(n_sample))
+    print('Completed tests for dataloader in training mode using {} samples'.format(n_sample))
+
+    # Testing dataloader in inference mode on KITTI
+    sparse_depth_filepath = os.path.join(
+        'validation', 'kitti', 'kitti_val_sparse_depth.txt')
+
+    sparse_depth_paths = data_utils.read_paths(sparse_depth_filepath)
+
+    n_height = 352
+    n_width = 1216
+
+    dataloader = ScaffNetDataloader(
+        name='scaffnet_dataloader',
+        shape=[1, n_height, n_width, 1],
+        is_training=False)
+
+    dataloader.initialize(
+        session,
+        sparse_depth_paths=sparse_depth_paths)
+
+    n_sample = 0
+    print('Testing dataloader in inference mode using paths from: \n {}'.format(
+        sparse_depth_filepath))
+
+    while True:
+        try:
+            input_depth = session.run(dataloader.next_element)
+
+            # Test shapes
+            if input_depth.shape != (1, n_height, n_width, 2):
+                print('Path={}  Shape={}'.format(
+                    sparse_depth_paths[n_sample], input_depth.shape))
+            # Test values
+            if np.any(np.isnan(input_depth)):
+                print('Path={}  contains NaN values'.format(
+                    sparse_depth_paths[n_sample]))
+            if np.min(input_depth[..., 0]) < 0.0:
+                print('Path={}  min value ({})less than 0.0'.format(
+                    sparse_depth_paths[n_sample], np.min(input_depth[..., 0])))
+            if np.max(input_depth[..., 0]) > 256.0:
+                print('Path={}  max value ({}) greater than 256.0'.format(
+                    sparse_depth_paths[n_sample], np.max(input_depth[..., 0])))
+            if not np.array_equal(np.unique(input_depth[..., 1]), np.array([0, 1])):
+                print('Path={}  contains values ({}) outside of [0, 1]'.format(
+                    sparse_depth_paths[n_sample], np.unique(input_depth[..., 1])))
+            if np.sum(np.where(input_depth[..., 0] > 0, 1, 0)) < n_point_min:
+                print('Path={}  contains {} (less than {}) points'.format(
+                    sparse_depth_paths[n_sample], np.sum(input_depth[..., 1]), n_point_min))
+            if np.sum(input_depth[..., 1]) < n_point_min:
+                print('Path={}  contains {} (less than {}) points'.format(
+                    sparse_depth_paths[n_sample], np.sum(input_depth[..., 1]), n_point_min))
+            if np.any(np.isnan(input_depth)):
+                print('Path={}  contains NaN values'.format(
+                    sparse_depth_paths[n_sample]))
+
+            n_sample = n_sample + 1
+
+            print('Processed {} samples...'.format(n_sample), end='\r')
+
+        except tf.errors.OutOfRangeError:
+            break
+
+    print('Completed tests for dataloader in inference mode using {} samples'.format(n_sample))

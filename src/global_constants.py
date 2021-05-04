@@ -5,7 +5,6 @@ N_WIDTH                             = 768
 N_CHANNEL                           = 3
 
 # Dataloader settings
-DEPTH_LOAD_MULTIPLIER               = 256.0
 CROP_TYPE                           = 'bottom'
 MIN_DATASET_DEPTH                   = 0.00
 MAX_DATASET_DEPTH                   = 655.00

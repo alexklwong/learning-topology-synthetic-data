@@ -31,13 +31,13 @@ parser.add_argument('--sparse_depth_path',
     type=str, required=True, help='Paths to sparse depth map paths')
 parser.add_argument('--ground_truth_path',
     type=str, default='', help='Paths to ground truth paths')
+parser.add_argument('--load_image_composite',
+    action='store_true', help='If set, load an image from image triplet composite')
 # Dataloader settings
 parser.add_argument('--start_idx',
     type=int, default=0, help='Start of subset of samples to run')
 parser.add_argument('--end_idx',
     type=int, default=1000, help='End of subset of samples to run')
-parser.add_argument('--depth_load_multiplier',
-    type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
 # Batch parameters
 parser.add_argument('--n_batch',
     type=int, default=settings.N_BATCH, help='Number of samples per batch')
@@ -102,19 +102,15 @@ input_depth_paths = input_depth_paths[args.start_idx:args.end_idx]
 sparse_depth_paths = sorted(data_utils.read_paths(args.sparse_depth_path))
 sparse_depth_paths = sparse_depth_paths[args.start_idx:args.end_idx]
 
-intrinsics_paths = [''] * len(image_paths)
-
 n_sample = len(image_paths)
 
 assert n_sample == len(input_depth_paths)
 assert n_sample == len(sparse_depth_paths)
-assert n_sample == len(intrinsics_paths)
 
 # Pad all paths based on batch size
 image_paths = data_utils.pad_batch(image_paths, args.n_batch)
 input_depth_paths = data_utils.pad_batch(input_depth_paths, args.n_batch)
 sparse_depth_paths = data_utils.pad_batch(sparse_depth_paths, args.n_batch)
-intrinsics_paths = data_utils.pad_batch(intrinsics_paths, args.n_batch)
 
 n_step = n_sample // args.n_batch
 
@@ -152,23 +148,18 @@ with tf.Graph().as_default():
     dataloader = FusionNetDataloader(
         shape=[args.n_batch, args.n_height, args.n_width, 3],
         name='fusionnet_dataloader',
+        is_training=False,
         n_thread=args.n_thread,
         prefetch_size=2 * args.n_thread)
 
     # Fetch the input from dataloader
     image0 = dataloader.next_element[0]
-    image1 = dataloader.next_element[1]
-    image2 = dataloader.next_element[2]
-    input_depth = dataloader.next_element[3]
-    intrinsics = dataloader.next_element[4]
+    input_depth = dataloader.next_element[1]
 
     # Build computation graph
     model = FusionNetModel(
         image0,
-        image1,
-        image2,
         input_depth,
-        intrinsics,
         is_training=False,
         network_type=args.network_type,
         image_filter_pct=args.image_filter_pct,
@@ -197,15 +188,10 @@ with tf.Graph().as_default():
     # Load data
     dataloader.initialize(
         session,
-        image_composite_paths=image_paths,
+        image_paths=image_paths,
         input_depth_paths=input_depth_paths,
         sparse_depth_paths=sparse_depth_paths,
-        intrinsics_paths=intrinsics_paths,
-        depth_load_multiplier=args.depth_load_multiplier,
-        do_center_crop=False,
-        do_bottom_crop=False,
-        random_horizontal_crop=False,
-        random_vertical_crop=False)
+        load_image_composite=args.load_image_composite)
 
     time_start = time.time()
 

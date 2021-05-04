@@ -17,6 +17,8 @@ class FusionNetStandaloneDataloader(object):
             list of [batch, height, width, channel]
         name : str
             name scope to use
+        normalize : bool
+            if set, then normalize image between [0, 1]
         n_thread : int
             number of threads to use for fetching data
         prefetch_size : int
@@ -47,22 +49,15 @@ class FusionNetStandaloneDataloader(object):
             self.image_placeholder = tf.placeholder(tf.string, shape=[None])
             self.sparse_depth_placeholder = tf.placeholder(tf.string, shape=[None])
 
-            # Set up placeholder for loading depth
-            self.depth_load_multiplier_placeholder = tf.placeholder(tf.float32, shape=())
-
-            # Set up crop and data augmentation placeholders
-            self.center_crop_placeholder = tf.placeholder(tf.bool, shape=())
-            self.bottom_crop_placeholder = tf.placeholder(tf.bool, shape=())
-
             self.dataset = tf.data.Dataset.from_tensor_slices((
                 self.image_placeholder,
                 self.sparse_depth_placeholder))
 
             self.dataset = self.dataset \
                 .map(self._load_func, num_parallel_calls=self.n_thread) \
-                .map(self._crop_func, num_parallel_calls=self.n_thread) \
                 .batch(self.n_batch) \
                 .prefetch(buffer_size=self.prefetch_size)
+
             self.iterator = self.dataset.make_initializable_iterator()
             self.next_element = self.iterator.get_next()
 
@@ -100,48 +95,6 @@ class FusionNetStandaloneDataloader(object):
             sparse_depth = self._load_depth_with_validity_map_func(sparse_depth_path)
 
             return (image, sparse_depth)
-
-    def _crop_func(self, image, input_depth):
-        '''
-        Crops image and input depth to specified shape
-
-        Args:
-            image : tensor
-                H x W x 3 RGB image
-            input_depth : tensor
-                H x W x 2 input depth of sparse depth and validity map
-        Returns:
-            tensor : h x w x 3 RGB image
-            tensor : h x w x 2 sparse depth and validity map
-        '''
-
-        def crop_func(in0, in1):
-            # Center crop to specified height and width, default bottom centered
-            shape = tf.shape(in0)
-
-            start_height = tf.cond(
-                self.center_crop_placeholder,
-                lambda: tf.to_int32(tf.to_float(shape[0] - self.n_height) / tf.to_float(2.0)),
-                lambda: tf.to_int32(shape[0] - self.n_height))
-
-            end_height = self.n_height + start_height
-
-            start_width = tf.to_int32(tf.to_float(shape[1] - self.n_width) / tf.to_float(2.0))
-            end_width = self.n_width + start_width
-
-            # Apply crop
-            in0 = in0[start_height:end_height, start_width:end_width, :]
-            in1 = in1[start_height:end_height, start_width:end_width, :]
-
-            return in0, in1
-
-        with tf.variable_scope('crop_func'):
-            image, input_depth = tf.cond(
-                tf.math.logical_or(self.center_crop_placeholder, self.bottom_crop_placeholder),
-                lambda: crop_func(image, input_depth),
-                lambda: (image, input_depth))
-
-            return (image, input_depth)
 
     def _load_image_composite_func(self, path):
         '''
@@ -204,7 +157,7 @@ class FusionNetStandaloneDataloader(object):
         with tf.variable_scope('load_depth_func'):
             depth = tf.py_func(
                 data_utils.load_depth,
-                [path, self.depth_load_multiplier_placeholder],
+                [path],
                 [tf.float32])
 
             return tf.squeeze(depth)
@@ -242,56 +195,17 @@ class FusionNetStandaloneDataloader(object):
         with tf.variable_scope('load_depth_with_validity_map_func'):
             depth, validity_map = tf.py_func(
                 data_utils.load_depth_with_validity_map,
-                [path, self.depth_load_multiplier_placeholder],
+                [path],
                 [tf.float32, tf.float32])
 
             return tf.concat([
                 tf.expand_dims(depth, axis=-1),
                 tf.expand_dims(validity_map, axis=-1)], axis=-1)
 
-    def _load_intrinsics_func(self, path):
-        '''
-        Loads camera intrinsics
-
-        Args:
-            path : str
-                path to intrinsics
-        Returns:
-            tensor : 3 x 3 camera intrinsics matrix
-        '''
-
-        with tf.variable_scope('load_intrinsics_func'):
-            intrinsics = tf.cond(
-                tf.equal(path, ''),
-                lambda : tf.eye(3),
-                lambda : tf.reshape(self._load_npy_func(path), [3, 3]))
-
-            return intrinsics
-
-    def _load_npy_func(self, path):
-        '''
-        Loads a numpy file
-
-        Args:
-            path : str
-                path to numpy (npy)
-        Returns:
-            tensor : numpy file
-        '''
-
-        with tf.variable_scope('load_npy_func'):
-            data = tf.py_func(
-                lambda path: np.load(path.decode()).astype(np.float32),
-                [path],
-                [tf.float32])
-
-            return tf.to_float(data)
-
     def initialize(self,
                    session,
                    image_paths=None,
                    sparse_depth_paths=None,
-                   depth_load_multiplier=256.0,
                    load_image_composite=True,
                    do_center_crop=False,
                    do_bottom_crop=False):
@@ -301,31 +215,26 @@ class FusionNetStandaloneDataloader(object):
         feed_dict = {
             self.image_placeholder                  : image_paths,
             self.sparse_depth_placeholder           : sparse_depth_paths,
-            self.depth_load_multiplier_placeholder  : depth_load_multiplier,
-            self.load_image_composite_placeholder   : load_image_composite,
-            self.center_crop_placeholder            : do_center_crop,
-            self.bottom_crop_placeholder            : do_bottom_crop,
+            self.load_image_composite_placeholder   : load_image_composite
         }
 
         session.run(self.iterator.initializer, feed_dict)
 
 
 if __name__ == '__main__':
-    import sys, os
+    import os
 
-    # Testing dataloader on KITTI
-    kitti_train_image_filepath = \
-        os.path.join('training', 'kitti_train_image.txt')
-    kitti_train_sparse_depth_filepath = \
-        os.path.join('training', 'kitti_train_sparse_depth.txt')
+    # Testing standalone dataloader on KITTI
+    image_filepath = \
+        os.path.join('validation', 'kitti', 'kitti_val_image.txt')
+    sparse_depth_filepath = \
+        os.path.join('validation', 'kitti', 'kitti_val_sparse_depth.txt')
 
-    kitti_train_image_paths = \
-        data_utils.read_paths(kitti_train_image_filepath)
-    kitti_train_sparse_depth_paths = \
-        data_utils.read_paths(kitti_train_sparse_depth_filepath)
+    image_paths = data_utils.read_paths(image_filepath)
+    sparse_depth_paths = data_utils.read_paths(sparse_depth_filepath)
 
-    n_height = 320
-    n_width = 768
+    n_height = 352
+    n_width = 1216
 
     dataloader = FusionNetStandaloneDataloader(
         name='fusionnet_standalone_dataloader',
@@ -333,58 +242,47 @@ if __name__ == '__main__':
         normalize=True)
 
     session = tf.Session()
+
     dataloader.initialize(
         session,
-        image_composite_paths=kitti_train_image_paths,
-        sparse_depth_paths=kitti_train_sparse_depth_paths,
-        depth_load_multiplier=256.0,
-        load_image_composite=True,
-        do_center_crop=False,
-        do_bottom_crop=True)
+        image_paths=image_paths,
+        sparse_depth_paths=sparse_depth_paths,
+        load_image_composite=True)
 
     n_sample = 0
-    print('Testing dataloader KITTI using paths from: \n {} \n {}'.format(
-        kitti_train_image_filepath,
-        kitti_train_sparse_depth_filepath))
+    print('Testing standalone dataloader KITTI using paths from: \n {} \n {}'.format(
+        image_filepath,
+        sparse_depth_filepath))
 
     while True:
         try:
-            image0, image1, image2, input_depth, intrinsics = \
-                session.run(dataloader.next_element)
+            image0, sparse_depth = session.run(dataloader.next_element)
 
             # Test shapes
-            assert(image0.shape == (1, n_height, n_width, 3)), \
-                'Path={} Image=0  Shape={}'.format(kitti_train_image_paths[n_sample], image0.shape)
-            assert(image1.shape == (1, n_height, n_width, 3)), \
-                'Path={} Image=1  Shape={}'.format(kitti_train_image_paths[n_sample], image1.shape)
-            assert(image2.shape == (1, n_height, n_width, 3)), \
-                'Path={} Image=2  Shape={}'.format(kitti_train_image_paths[n_sample], image2.shape)
+            if image0.shape != (1, n_height, n_width, 3):
+                print('Path={} Image=0  Shape={}'.format(image_paths[n_sample], image0.shape))
+            if sparse_depth.shape != (1, n_height, n_width, 2):
+                print('Path={} Shape={}'.format(sparse_depth_paths[n_sample], sparse_depth.shape))
 
             # Test values
-            assert(np.min(image0) >= 0.0), \
-                'Path={} Image=0  Min={}'.format(kitti_train_image_paths[n_sample], np.min(image0))
-            assert(np.max(image0) <= 1.0), \
-                'Path={} Image=0  Max={}'.format(kitti_train_image_paths[n_sample], np.max(image0))
-            assert(np.min(image1) >= 0.0), \
-                'Path={} Image=1  Min={}'.format(kitti_train_image_paths[n_sample], np.min(image1))
-            assert(np.max(image1) <= 1.0), \
-                'Path={} Image=1  Max={}'.format(kitti_train_image_paths[n_sample], np.max(image1))
-            assert(np.min(image2) >= 0.0), \
-                'Path={} Image=2  Min={}'.format(kitti_train_image_paths[n_sample], np.min(image2))
-            assert(np.max(image2) <= 1.0), \
-                'Path={} Image=2  Max={}'.format(kitti_train_image_paths[n_sample], np.max(image2))
-
-            assert(np.min(input_depth[..., 1]) >= 0.0), \
-                'Path={}  Min={}'.format(kitti_train_sparse_depth_paths[n_sample], np.min(input_depth[..., 1]))
-            assert(np.max(input_depth[..., 1]) <= 256.0), \
-                'Path={}  Max={}'.format(kitti_train_sparse_depth_paths[n_sample], np.max(input_depth[..., 1]))
+            if np.min(image0) < 0.0:
+                print('Path={} Image=0  Min={}'.format(image_paths[n_sample], np.min(image0)))
+            if np.max(image0) > 1.0:
+                print('Path={} Image=0  Max={}'.format(image_paths[n_sample], np.max(image0)))
+            if np.min(sparse_depth[..., 0]) < 0.0:
+                print('Path={}  Min={}'.format(sparse_depth_paths[n_sample], np.min(sparse_depth[..., 0])))
+            if np.max(sparse_depth[..., 0]) > 256.0:
+                print('Path={}  Max={}'.format(sparse_depth_paths[n_sample], np.max(sparse_depth[..., 0])))
+            if np.min(sparse_depth[..., 1]) < 0.0:
+                print('Path={}  Min={}'.format(sparse_depth_paths[n_sample], np.min(sparse_depth[..., 1])))
+            if np.max(sparse_depth[..., 1]) > 256.0:
+                print('Path={}  Max={}'.format(sparse_depth_paths[n_sample], np.max(sparse_depth[..., 1])))
 
             n_sample = n_sample + 1
 
-            sys.stdout.write('Processed {} samples...\r'.format(n_sample))
-            sys.stdout.flush()
+            print('Processed {} samples...'.format(n_sample), end='\r')
 
         except tf.errors.OutOfRangeError:
             break
 
-    print('Completed tests for dataloader on KITTI using {} samples'.format(n_sample))
+    print('Completed tests for standalone dataloader on KITTI using {} samples'.format(n_sample))

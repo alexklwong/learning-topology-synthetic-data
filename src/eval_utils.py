@@ -1,4 +1,3 @@
-import os
 import numpy as np
 from log_utils import log
 
@@ -64,11 +63,7 @@ def inv_mean_abs_err(src, tgt):
 
 def evaluate(output_depths,
              ground_truths,
-             best_results=None,
              step=0,
-             session=None,
-             saver=None,
-             checkpoint_path=None,
              log_path=None,
              min_evaluate_depth=0.0,
              max_evaluate_depth=100.0):
@@ -84,20 +79,12 @@ def evaluate(output_depths,
             dictionary of best recorded results
         step : int
             step of the trained model
-        session : tf.Session
-            tensorflow session
-        saver : tf.Saver
-            checkpoint saver for best checkpoint
-        checkpoint_path : str
-            path to save checkpoint
         log_path : str
             path to log results
         min_evaluate_depth : float
             minimum depth value to evaluate
         max_evaluate_depth : float
             maximum depth value to evaluate
-    Returns:
-        dict : best results
     '''
 
     assert len(output_depths) == len(ground_truths)
@@ -143,42 +130,3 @@ def evaluate(output_depths,
     log('{:8}  {:8.3f}  {:8.3f}  {:8.3f}  {:8.3f}'.format(
         step, mae, rmse, imae, irmse),
         log_path)
-
-    if best_results is not None:
-        # Check whether current results is better than best results
-        n_improved = 0
-
-        if np.round(mae, 1) <= np.round(best_results['mae'], 1):
-            n_improved = n_improved + 1
-        if np.round(rmse, 1) <= np.round(best_results['rmse'], 1):
-            n_improved = n_improved + 1
-        if np.round(imae, 3) <= np.round(best_results['imae'], 3):
-            n_improved = n_improved + 1
-        if np.round(irmse, 3) <= np.round(best_results['irmse'], 3):
-            n_improved = n_improved + 1
-
-        if n_improved > 2:
-            best_results['step'] = step
-            best_results['mae'] = mae
-            best_results['rmse'] = rmse
-            best_results['imae'] = imae
-            best_results['irmse'] = irmse
-
-            if session is not None and saver is not None and checkpoint_path is not None:
-                saver.save(
-                    session,
-                    os.path.join(checkpoint_path, 'best', 'model.ckpt'),
-                    global_step=step)
-
-        log('Best results:', log_path)
-        log('{:>8}  {:>8}  {:>8}  {:>8}  {:>8}'.format(
-            'Step', 'MAE', 'RMSE', 'iMAE', 'iRMSE'),
-            log_path)
-        log('{:8}  {:8.3f}  {:8.3f}  {:8.3f}  {:8.3f}'.format(
-            best_results['step'],
-            best_results['mae'],
-            best_results['rmse'],
-            best_results['imae'],
-            best_results['irmse']), log_path)
-
-    return best_results

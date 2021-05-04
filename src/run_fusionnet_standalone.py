@@ -38,17 +38,14 @@ parser.add_argument('--start_idx',
     type=int, default=0, help='Start of subset of samples to run')
 parser.add_argument('--end_idx',
     type=int, default=1000, help='End of subset of samples to run')
-parser.add_argument('--depth_load_multiplier',
-    type=float, default=settings.DEPTH_LOAD_MULTIPLIER, help='Multiplier used for loading depth')
-parser.add_argument('--load_image_composite',
-    action='store_true', help='If set, load image triplet composite')
-# Batch parameters
 parser.add_argument('--n_batch',
     type=int, default=settings.N_BATCH, help='Number of samples per batch')
 parser.add_argument('--n_height',
     type=int, default=N_HEIGHT, help='Height of each sample')
 parser.add_argument('--n_width',
     type=int, default=N_WIDTH, help='Width of each sample')
+parser.add_argument('--load_image_composite',
+    action='store_true', help='If set, load image triplet composite')
 # ScaffNet network architecture
 parser.add_argument('--network_type_scaffnet',
     type=str, default=settings.NETWORK_TYPE_SCAFFNET, help='Network type to build')
@@ -171,7 +168,6 @@ with tf.Graph().as_default():
     # Build computation graph
     scaffnet = ScaffNetModel(
         sparse_depth,
-        sparse_depth,
         is_training=False,
         network_type=args.network_type_scaffnet,
         activation_func=args.activation_func_scaffnet,
@@ -183,17 +179,10 @@ with tf.Graph().as_default():
         max_predict_depth=args.max_predict_depth)
 
     input_depth = scaffnet.predict
-    input_depth = tf.concat([
-        input_depth,
-        tf.expand_dims(sparse_depth[..., 0], axis=-1)],
-        axis=-1)
 
     fusionnet = FusionNetModel(
-        image,
-        image,
-        image,
-        input_depth,
-        None,
+        image0=image,
+        input_depth=input_depth,
         is_training=False,
         network_type=args.network_type_fusionnet,
         image_filter_pct=args.image_filter_pct_fusionnet,
@@ -243,10 +232,7 @@ with tf.Graph().as_default():
         session,
         image_paths=image_paths,
         sparse_depth_paths=sparse_depth_paths,
-        depth_load_multiplier=args.depth_load_multiplier,
-        load_image_composite=args.load_image_composite,
-        do_center_crop=False,
-        do_bottom_crop=False)
+        load_image_composite=args.load_image_composite)
 
     time_start = time.time()
 

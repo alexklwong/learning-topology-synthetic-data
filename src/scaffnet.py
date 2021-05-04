@@ -18,22 +18,15 @@ def train(train_sparse_depth_path,
           val_sparse_depth_path=None,
           val_ground_truth_path=None,
           # Dataloader settings
-          depth_load_multiplier=settings.DEPTH_LOAD_MULTIPLIER,
+          n_batch=settings.N_BATCH,
+          n_height=settings.N_HEIGHT,
+          n_width=settings.N_WIDTH,
           min_dataset_depth=settings.MIN_DATASET_DEPTH,
           max_dataset_depth=settings.MAX_DATASET_DEPTH,
           crop_type=settings.CROP_TYPE,
           augmentation_random_horizontal_crop=False,
           augmentation_random_vertical_crop=False,
           augmentation_random_horizontal_flip=False,
-          # Batch settings
-          n_batch=settings.N_BATCH,
-          n_height=settings.N_HEIGHT,
-          n_width=settings.N_WIDTH,
-          # Training settings
-          learning_rates=settings.LEARNING_RATES,
-          learning_schedule=settings.LEARNING_SCHEDULE,
-          n_epoch=settings.N_EPOCH,
-          loss_func=settings.LOSS_FUNC_SCAFFNET,
           # Network architecture
           network_type=settings.NETWORK_TYPE_SCAFFNET,
           activation_func=settings.ACTIVATION_FUNC,
@@ -45,6 +38,11 @@ def train(train_sparse_depth_path,
           # Depth prediction settings
           min_predict_depth=settings.MIN_PREDICT_DEPTH,
           max_predict_depth=settings.MAX_PREDICT_DEPTH,
+          # Training settings
+          learning_rates=settings.LEARNING_RATES,
+          learning_schedule=settings.LEARNING_SCHEDULE,
+          n_epoch=settings.N_EPOCH,
+          loss_func=settings.LOSS_FUNC_SCAFFNET,
           # Depth evaluation settings
           min_evaluate_depth=settings.MIN_EVALUATE_DEPTH,
           max_evaluate_depth=settings.MAX_EVALUATE_DEPTH,
@@ -56,13 +54,6 @@ def train(train_sparse_depth_path,
           # Hardware settings
           n_thread=settings.N_THREAD):
 
-    best_results = {
-        'step': -1,
-        'mae': np.infty,
-        'rmse': np.infty,
-        'imae': np.infty,
-        'irmse': np.infty
-    }
     model_path = os.path.join(checkpoint_path, 'model.ckpt')
     event_path = os.path.join(checkpoint_path, 'events')
     log_path = os.path.join(checkpoint_path, 'results.txt')
@@ -100,6 +91,8 @@ def train(train_sparse_depth_path,
             start_height = int(float(ground_truth.shape[0] - n_height))
         elif crop_type == 'bottom':
             start_height = ground_truth.shape[0] - n_height
+        else:
+            start_height = 0
 
         end_height = n_height + start_height
 
@@ -135,6 +128,7 @@ def train(train_sparse_depth_path,
         dataloader = ScaffNetDataloader(
             shape=[n_batch, n_height, n_width, 2],
             name='scaffnet_dataloader',
+            is_training=True,
             n_thread=n_thread,
             prefetch_size=(2 * n_thread))
 
@@ -171,26 +165,39 @@ def train(train_sparse_depth_path,
         for variable in tf.trainable_variables():
             n_parameter += np.array(variable.get_shape().as_list()).prod()
 
-        # Log network parameters
-        log('Batch settings:', log_path)
+        # Log settings
+        log('Dataloader settings:', log_path)
         log('n_batch=%d  n_height=%d  n_width=%d' %
             (n_batch, n_height, n_width), log_path)
-        log('', log_path)
-
-        log('Dataloader settings:', log_path)
-        log('depth_load_multiplier=%.2f' %
-            (depth_load_multiplier), log_path)
         log('min_dataset_depth=%.2f  max_dataset_depth=%.2f' %
             (min_dataset_depth, max_dataset_depth), log_path)
         log('crop_type=%s' %
             (crop_type), log_path)
-        log('', log_path)
-
-        log('Augmentation settings:', log_path)
         log('random_horizontal_crop=%s  random_vertical_crop=%s' %
             (augmentation_random_horizontal_crop, augmentation_random_vertical_crop), log_path)
         log('random_horizontal_flip=%s' %
             (augmentation_random_horizontal_flip), log_path)
+        log('', log_path)
+
+        log('Network settings:', log_path)
+        log('network_type=%s  n_parameter=%d' %
+            (network_type, n_parameter), log_path)
+        log('activation_func=%s' %
+            (activation_func), log_path)
+        log('n_filter_output=%s' %
+            (str(n_filter_output) if n_filter_output > 0 else 'upsample'), log_path)
+
+        log('Spatial pyramid pooling settings:', log_path)
+        log('pool_kernel_sizes_spp=[%s]  n_convolution_spp=%d  n_filter_spp=%d' %
+            (', '.join([str(i) for i in pool_kernel_sizes_spp])),
+            log_path)
+        log('n_convolution_spp=%d  n_filter_spp=%d' %
+            (n_convolution_spp, n_filter_spp), log_path)
+        log('', log_path)
+
+        log('Depth prediction settings:', log_path)
+        log('min_predict_depth=%.2f  max_predict_depth=%.2f' %
+            (min_predict_depth, max_predict_depth), log_path)
         log('', log_path)
 
         log('Training settings:', log_path)
@@ -206,22 +213,7 @@ def train(train_sparse_depth_path,
             n_train_step), log_path)
         log('', log_path)
 
-        log('Network settings:', log_path)
-        log('network_type=%s  n_parameter=%d' %
-            (network_type, n_parameter), log_path)
-        log('activation_func=%s' %
-            (activation_func), log_path)
-        log('n_filter_output=%s' %
-            (str(n_filter_output) if n_filter_output > 0 else 'upsample'), log_path)
-        log('pool_kernel_sizes_spp=[%s]  n_convolution_spp=%d  n_filter_spp=%d' %
-            (', '.join([str(i) for i in pool_kernel_sizes_spp]),
-            n_convolution_spp,
-            n_filter_spp), log_path)
-        log('', log_path)
-
-        log('Depth range settings:', log_path)
-        log('min_predict_depth=%.2f  max_predict_depth=%.2f' %
-            (min_predict_depth, max_predict_depth), log_path)
+        log('Depth evaluation settings:', log_path)
         log('min_evaluate_depth=%.2f  max_evaluate_depth=%.2f' %
             (min_evaluate_depth, max_evaluate_depth), log_path)
         log('', log_path)
@@ -242,7 +234,6 @@ def train(train_sparse_depth_path,
         train_summary_writer = tf.summary.FileWriter(event_path + '-train', session.graph)
         val_summary_writer = tf.summary.FileWriter(event_path + '-val')
         train_saver = tf.train.Saver(max_to_keep=50)
-        train_saver_best = tf.train.Saver()
 
         # Initialize all variables
         session.run(tf.global_variables_initializer())
@@ -273,7 +264,6 @@ def train(train_sparse_depth_path,
             session,
             sparse_depth_paths=train_sparse_depth_paths_epoch,
             ground_truth_paths=train_ground_truth_paths_epoch,
-            depth_load_multiplier=depth_load_multiplier,
             do_center_crop=do_center_crop,
             do_bottom_crop=do_bottom_crop,
             random_horizontal_crop=augmentation_random_horizontal_crop,
@@ -329,14 +319,10 @@ def train(train_sparse_depth_path,
                         verbose=False)
 
                     # Run validation metrics
-                    best_results = eval_utils.evaluate(
+                    eval_utils.evaluate(
                         val_output_depths,
                         val_ground_truths,
-                        best_results,
                         train_step,
-                        session=session,
-                        saver=train_saver_best,
-                        checkpoint_path=checkpoint_path,
                         log_path=log_path,
                         min_evaluate_depth=min_evaluate_depth,
                         max_evaluate_depth=max_evaluate_depth)
@@ -348,7 +334,6 @@ def train(train_sparse_depth_path,
                         session,
                         sparse_depth_paths=train_sparse_depth_paths_epoch[current_sample:],
                         ground_truth_paths=train_ground_truth_paths_epoch[current_sample:],
-                        depth_load_multiplier=depth_load_multiplier,
                         do_center_crop=do_center_crop,
                         do_bottom_crop=do_bottom_crop,
                         random_horizontal_crop=augmentation_random_horizontal_crop,
@@ -373,7 +358,6 @@ def train(train_sparse_depth_path,
                     session,
                     sparse_depth_paths=train_sparse_depth_paths_epoch,
                     ground_truth_paths=train_ground_truth_paths_epoch,
-                    depth_load_multiplier=depth_load_multiplier,
                     do_center_crop=do_center_crop,
                     do_bottom_crop=do_bottom_crop,
                     random_horizontal_crop=augmentation_random_horizontal_crop,

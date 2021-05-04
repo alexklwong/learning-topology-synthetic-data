@@ -18,7 +18,6 @@ validation/kitti/kitti_val_ground_truth.txt \
 --n_batch 8 \
 --n_height 352 \
 --n_width 1216 \
---depth_load_multiplier 256.0 \
 --network_type scaffnet32 \
 --activation_func leaky_relu \
 --n_filter_output 32 \

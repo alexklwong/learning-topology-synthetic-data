@@ -43,7 +43,7 @@ def euler2mat(z, y, x):
   siny = tf.sin(y)
   roty_1 = tf.concat([cosy, zeros, siny], axis=3)
   roty_2 = tf.concat([zeros, ones, zeros], axis=3)
-  roty_3 = tf.concat([-siny,zeros, cosy], axis=3)
+  roty_3 = tf.concat([-siny, zeros, cosy], axis=3)
   ymat = tf.concat([roty_1, roty_2, roty_3], axis=2)
 
   cosx = tf.cos(x)
@@ -209,7 +209,7 @@ def compute_rigid_flow(depth, pose, intrinsics, reverse_pose=False):
     pose = inverse_pose(pose)
   # Construct pixel grid coordinates
   pixel_coords = meshgrid(batch, height, width)
-  tgt_pixel_coords = tf.transpose(pixel_coords[:,:2,:,:], [0, 2, 3, 1])
+  tgt_pixel_coords = tf.transpose(pixel_coords[:, :2, :, :], [0, 2, 3, 1])
   # Convert pixel coordinates to the camera frame
   cam_coords = pixel2cam(depth, pixel_coords, intrinsics)
   # Construct a 4x4 intrinsic matrix
@@ -271,7 +271,7 @@ def bilinear_sampler(imgs, coords):
     x1_safe = tf.clip_by_value(x1, zero, x_max)
     y1_safe = tf.clip_by_value(y1, zero, y_max)
 
-    ## bilinear interp weights, with points outside the grid having weight 0
+    # bilinear interp weights, with points outside the grid having weight 0
     # wt_x0 = (x1 - coords_x) * tf.cast(tf.equal(x0, x0_safe), 'float32')
     # wt_x1 = (coords_x - x0) * tf.cast(tf.equal(x1, x1_safe), 'float32')
     # wt_y0 = (y1 - coords_y) * tf.cast(tf.equal(y0, y0_safe), 'float32')
@@ -282,7 +282,7 @@ def bilinear_sampler(imgs, coords):
     wt_y0 = y1_safe - coords_y
     wt_y1 = coords_y - y0_safe
 
-    ## indices in the flat image to sample from
+    # indices in the flat image to sample from
     dim2 = tf.cast(inp_size[2], 'float32')
     dim1 = tf.cast(inp_size[2] * inp_size[1], 'float32')
     base = tf.reshape(
@@ -298,7 +298,7 @@ def bilinear_sampler(imgs, coords):
     idx10 = x1_safe + base_y0
     idx11 = x1_safe + base_y1
 
-    ## sample from imgs
+    # sample from imgs
     imgs_flat = tf.reshape(imgs, tf.stack([-1, inp_size[3]]))
     imgs_flat = tf.cast(imgs_flat, 'float32')
     im00 = tf.reshape(tf.gather(imgs_flat, tf.cast(idx00, 'int32')), out_size)
@@ -343,100 +343,3 @@ def inverse_pose(g):
     ginv = tf.concat((ginv, [[0, 0, 0, 1]]), axis=0)
     return ginv
   return tf.map_fn(_inverse_pose, g)
-
-def mean_filter(im, ksize=5):
-  '''
-  Computes the mean of a local neighborhood
-
-  Args:
-    im : N x H x W x D tensor
-      RGB image
-    ksize : int
-      kernel size of mean filter
-
-  Returns:
-    tensor : N x H x W x D tensor of local means
-  '''
-  kernel = tf.constant(1.0, shape=[ksize, ksize, 1, 1])/(ksize**2)
-  n_pad = int(ksize/2)
-  im_pad = tf.pad(im, [[0, 0], [n_pad, n_pad], [n_pad, n_pad], [0, 0]], mode='REFLECT')
-  im_mean = tf.concat([
-      tf.nn.conv2d(tf.expand_dims(im_pad[..., 0], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID'),
-      tf.nn.conv2d(tf.expand_dims(im_pad[..., 1], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID'),
-      tf.nn.conv2d(tf.expand_dims(im_pad[..., 2], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID')], axis=-1)
-  return im_mean
-
-def l2_norm_filter(im, ksize=5):
-  '''
-  Computes the L2 norm of a neighborhood
-
-  Args:
-    im : N x H x W x D tensor
-      RGB image
-    ksize : int
-      kernel size of local L2 norm filter
-
-  Returns:
-    tensor : N x H x W x D tensor of local l2-norms
-  '''
-  kernel = tf.constant(1.0, shape=[ksize, ksize, 1, 1])
-  im_squared = tf.square(im)
-  n_pad = int(ksize/2)
-  im_pad = tf.pad(im_squared, [[0, 0], [n_pad, n_pad], [n_pad, n_pad], [0, 0]], mode='REFLECT')
-  im_local_sum = tf.concat([
-      tf.nn.conv2d(tf.expand_dims(im_pad[..., 0], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID'),
-      tf.nn.conv2d(tf.expand_dims(im_pad[..., 1], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID'),
-      tf.nn.conv2d(tf.expand_dims(im_pad[..., 2], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID')], axis=-1)
-  return tf.sqrt(im_local_sum)
-
-def var_norm_filter(im, ksize=5):
-  '''
-  Computes the variance of a neighborhood
-
-  Args:
-    im : N x H x W x D tensor
-      RGB image
-    ksize : int
-      kernel size of local variance filter
-
-  Returns:
-    tensor : N x H x W x D tensor of local variance
-  '''
-  im_mean = mean_filter(im, ksize=ksize)
-  x = tf.square(im-im_mean+0.50)
-  kernel = tf.constant(1.0/ksize**2, shape=[ksize, ksize, 1, 1])
-  n_pad = int(ksize/2)
-  X = tf.pad(x, [[0, 0], [n_pad, n_pad], [n_pad, n_pad], [0, 0]], mode='REFLECT')
-  local_sum = tf.concat([
-      tf.nn.conv2d(tf.expand_dims(X[..., 0], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID'),
-      tf.nn.conv2d(tf.expand_dims(X[..., 1], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID'),
-      tf.nn.conv2d(tf.expand_dims(X[..., 2], axis=-1), kernel, strides=[1, 1, 1, 1], padding='VALID')], axis=-1)
-  return tf.sqrt(local_sum+1e-6)
-
-def local_instance_norm(im, ksize=5):
-  '''
-  Computes the local instance norm of a patch
-
-  Args:
-    im : N x H x W x D tensor
-      RGB image
-    ksize : int
-      kernel size of local filter
-
-  Returns:
-    tensor : N x H x W x D tensor after local instance normalization
-  '''
-  ksizes = [1, ksize, ksize, 1]
-  strides = [1, 1, 1, 1]
-  rates = [1, 1, 1, 1]
-  padding = 'VALID'
-  # Patches have dimension BHW(kernel_size^2)*3
-  n_pad = int(ksize/2)
-  im_pad = tf.pad(im, [[0, 0], [n_pad, n_pad], [n_pad, n_pad], [0, 0]], mode='REFLECT')
-  patches_x = tf.extract_image_patches(im_pad,
-      ksizes=ksizes, strides=strides, rates=rates, padding=padding)
-  # Reshape to BHW(kernel_size^2)3
-  patches_x = tf.reshape(patches_x, patches_x.shape.as_list()[0:3]+[-1, 3])
-  mean_x = tf.reduce_mean(patches_x, axis=3, keepdims=True)
-  var_x = tf.reduce_mean(tf.square(patches_x-mean_x+0.50), axis=3)
-  return (im-tf.reshape(mean_x, im.shape.as_list())+0.50)/tf.sqrt(var_x+1e-6)

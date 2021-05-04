@@ -66,6 +66,25 @@ VOID_TEST_INTRINSICS_1500_FILEPATH      = os.path.join(TEST_REFS_DIRPATH, 'void_
 
 
 def process_frame(inputs):
+    '''
+    Processes a single depth frame
+
+    Args:
+        inputs : tuple
+            image path at time t=0,
+            image path at time t=1,
+            image path at time t=-1,
+            sparse depth path at time t=0,
+            validity map path at time t=0,
+            ground truth path at time t=0
+    Returns:
+        str : image reference directory path
+        str : output concatenated image path at time t=0
+        str : output sparse depth path at time t=0
+        str : output validity map path at time t=0
+        str : output ground truth path at time t=0
+    '''
+
     image_path1, \
         image_path0, \
         image_path2, \
