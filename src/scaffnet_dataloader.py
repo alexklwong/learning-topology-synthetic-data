@@ -338,8 +338,8 @@ if __name__ == '__main__':
             if np.min(input_depth[..., 0]) < 0.0:
                 print('Path={}  min value ({})less than 0.0'.format(
                     sparse_depth_paths[n_sample], np.min(input_depth[..., 0])))
-            if np.max(input_depth[..., 0]) > 21.0:
-                print('Path={}  max value ({}) greater than 21.0'.format(
+            if np.max(input_depth[..., 0]) > 256.0:
+                print('Path={}  max value ({}) greater than 256.0'.format(
                     sparse_depth_paths[n_sample], np.max(input_depth[..., 0])))
             if not np.array_equal(np.unique(input_depth[..., 1]), np.array([0, 1])):
                 print('Path={}  contains values ({}) outside of [0, 1]'.format(
@@ -359,8 +359,8 @@ if __name__ == '__main__':
             if np.min(ground_truth[..., 0]) < 0.0:
                 print('Path={}  min value ({}) less than 0.0'.format(
                     ground_truth_paths[n_sample], np.min(ground_truth[..., 0])))
-            if np.max(ground_truth[..., 0]) > 21.0:
-                print('Path={}  max value ({}) greater than 21.0'.format(
+            if np.max(ground_truth[..., 0]) > 256.0:
+                print('Path={}  max value ({}) greater than 256.0'.format(
                     ground_truth_paths[n_sample], np.max(ground_truth[..., 0])))
             if np.sum(np.where(ground_truth[..., 0] > 0.0, 1.0, 0.0)) < n_point_min:
                 print('Path={}  contains {} (less than {}) points'.format(

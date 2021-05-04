@@ -89,7 +89,7 @@ def process_frame(inputs):
         validity_map = np.zeros_like(image).astype(np.int16)
         validity_map[selected_indices[:, 0], selected_indices[:, 1]] = 1.0
 
-    ground_truth = data_utils.load_depth(ground_truth_path, multiplier=1000)
+    ground_truth = data_utils.load_depth(ground_truth_path, multiplier=448)
 
     ground_truth = cv2.resize(
         ground_truth,
@@ -122,9 +122,9 @@ def process_frame(inputs):
             np.sum(validity_map)))
 
     # Depth value check
-    if np.min(ground_truth) < 0.0 or np.max(ground_truth) > 25.0:
+    if np.min(ground_truth) < 0.0 or np.max(ground_truth) > 256.0:
         error_flag = True
-        print('FAILED: min ground truth value less than 0 or greater than 25')
+        print('FAILED: min ground truth value less than 0 or greater than 256')
 
     if np.sum(np.where(sparse_depth > 0.0, 1.0, 0.0)) < args.min_points:
         error_flag = True
