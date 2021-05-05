@@ -7,10 +7,10 @@ python src/train_fusionnet.py \
 --train_input_depth_path training/void/void_train_predict_depth_1500.txt \
 --train_sparse_depth_path training/void/void_train_sparse_depth_1500.txt \
 --train_intrinsics_path training/void/void_train_intrinsics_1500.txt \
---val_image_path testing/void/void_val_image_1500.txt \
---val_input_depth_path testing/void/void_val_predict_depth_1500.txt \
---val_sparse_depth_path testing/void/void_val_sparse_depth_1500.txt \
---val_ground_truth_path testing/void/void_val_ground_truth_1500.txt \
+--val_image_path testing/void/void_test_image_1500.txt \
+--val_input_depth_path testing/void/void_test_predict_depth_1500.txt \
+--val_sparse_depth_path testing/void/void_test_sparse_depth_1500.txt \
+--val_ground_truth_path testing/void/void_test_ground_truth_1500.txt \
 --n_batch 8 \
 --n_height 480 \
 --n_width 640 \
@@ -27,7 +27,7 @@ python src/train_fusionnet.py \
 --max_scale_depth 4.00 \
 --min_residual_depth -1000.0 \
 --max_residual_depth 1000.0 \
---learning_rates 5.00e-5 2.50e-5 1.00e-4 \
+--learning_rates 5.00e-5 2.50e-5 1.00e-5 \
 --learning_schedule 6 8 \
 --n_epoch 10 \
 --validity_map_color nonsparse \
