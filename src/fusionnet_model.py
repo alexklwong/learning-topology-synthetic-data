@@ -175,11 +175,13 @@ class FusionNetModel(object):
                 self.pose01, self.pose02 = [
                     loss_utils.pose_vec2mat(v) for v in tf.split(self.pose, 2, axis=0)
                 ]
-            else:
+            elif rotation_param == 'exponential':
                 # Exponential parametrization for rotation
                 self.pose01, self.pose02 = [
                     loss_utils.pose_expm(v) for v in tf.split(self.pose, 2, axis=0)
                 ]
+            else:
+                raise ValueError('Unsupport rotation parameterization: {}'.format(rotation_param))
 
             # Build loss function
             self.loss = self.build_loss()
