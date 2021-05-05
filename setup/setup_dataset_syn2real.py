@@ -108,7 +108,7 @@ for idx in range(len(steps)):
             prefetch_size=(2 * args.n_thread))
 
         # Fetch the input from dataloader
-        input_depth = dataloader.next_element[0]
+        input_depth = dataloader.next_element
 
         # Build computation graph
         model = ScaffNetModel(
@@ -213,7 +213,7 @@ for mode in modes:
             prefetch_size=(2 * args.n_thread))
 
         # Fetch the input from dataloader
-        input_depth = dataloader.next_element[0]
+        input_depth = dataloader.next_element
 
         # Build computation graph
         model = ScaffNetModel(

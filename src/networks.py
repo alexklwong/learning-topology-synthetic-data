@@ -117,8 +117,7 @@ def upconv2d(x,
         tensor : layer after performing up-convolution
     '''
 
-    name = name if name is not None else ''
-    layer_name = name + 'upconv'
+    layer_name = name if name is not None else 'upconv'
 
     x_up = tf.image.resize_nearest_neighbor(x, shape)
 
@@ -805,7 +804,8 @@ def fusionnet_decoder(layer,
             kernel_size=kernel_size,
             stride=1,
             activation_fn=activation_fn,
-            reuse=tf.AUTO_REUSE)
+            reuse=tf.AUTO_REUSE,
+            name='upconv')
 
         # Concatenate with skip connection
         dec4_concat = tf.concat([dec4_upconv, skips[3]], axis=-1)
@@ -986,7 +986,8 @@ def scaffnet_decoder(layer,
             kernel_size=kernel_size,
             stride=1,
             activation_fn=activation_fn,
-            reuse=tf.AUTO_REUSE)
+            reuse=tf.AUTO_REUSE,
+            name='upconv')
 
         # Concatenate with skip connection
         dec4_concat = tf.concat([dec4_upconv, skips[n]], axis=-1)

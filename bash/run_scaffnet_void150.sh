@@ -4,8 +4,8 @@ export CUDA_VISIBLE_DEVICES=1
 
 python src/run_scaffnet.py \
 --restore_path pretrained_models/scaffnet/scenenet/retrained/scaffnet.ckpt-scenenet \
---sparse_depth_path testing/void/void_test_sparse_depth_1500.txt \
---ground_truth_path testing/void/void_test_ground_truth_1500.txt \
+--sparse_depth_path testing/void/void_test_sparse_depth_150.txt \
+--ground_truth_path testing/void/void_test_ground_truth_150.txt \
 --n_batch 8 \
 --n_height 480 \
 --n_width 640 \
@@ -20,5 +20,5 @@ python src/run_scaffnet.py \
 --min_evaluate_depth 0.2 \
 --max_evaluate_depth 5.0 \
 --save_outputs \
---output_path pretrained_models/scaffnet/scenenet/retrained/outputs/void1500 \
+--output_path pretrained_models/scaffnet/scenenet/retrained/outputs/void150 \
 --n_thread 4

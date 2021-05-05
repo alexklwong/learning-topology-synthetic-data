@@ -5,9 +5,9 @@ export CUDA_VISIBLE_DEVICES=1
 python src/run_fusionnet_standalone.py \
 --restore_path_scaffnet pretrained_models/scaffnet/scenenet/retrained/scaffnet.ckpt-scenenet \
 --restore_path_fusionnet pretrained_models/fusionnet/void/retrained/fusionnet.ckpt-void \
---image_path testing/void/void_test_image_1500.txt \
---sparse_depth_path testing/void/void_test_sparse_depth_1500.txt \
---ground_truth_path testing/void/void_test_ground_truth_1500.txt \
+--image_path testing/void/void_test_image_500.txt \
+--sparse_depth_path testing/void/void_test_sparse_depth_500.txt \
+--ground_truth_path testing/void/void_test_ground_truth_500.txt \
 --n_batch 8 \
 --n_height 480 \
 --n_width 640 \
@@ -31,5 +31,5 @@ python src/run_fusionnet_standalone.py \
 --min_evaluate_depth 0.2 \
 --max_evaluate_depth 5.0 \
 --save_outputs \
---output_path pretrained_models/fusionnet/void/retrained/standalone/outputs/void1500 \
+--output_path pretrained_models/fusionnet/void/retrained/standalone/outputs/void500 \
 --n_thread 4
