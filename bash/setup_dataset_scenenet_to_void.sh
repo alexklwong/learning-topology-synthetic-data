@@ -14,6 +14,8 @@ python setup/setup_dataset_syn2real.py \
 --n_convolution_spp 3 \
 --min_predict_depth 0.1 \
 --max_predict_depth 8.0 \
+--input_root_dirpath void_release \
+--output_root_dirpath void_learning_topology \
 --train_output_depth_path training/void/void_train_predict_depth_1500.txt \
 --val_output_depth_path testing/void/void_test_predict_depth_1500.txt \
 --test_output_depth_path testing/void/void_test_predict_depth_1500.txt \
@@ -31,6 +33,8 @@ python setup/setup_dataset_syn2real.py \
 --n_convolution_spp 3 \
 --min_predict_depth 0.1 \
 --max_predict_depth 8.0 \
+--input_root_dirpath void_release \
+--output_root_dirpath void_learning_topology \
 --train_output_depth_path training/void/void_train_predict_depth_500.txt \
 --val_output_depth_path testing/void/void_test_predict_depth_500.txt \
 --test_output_depth_path testing/void/void_test_predict_depth_500.txt \
@@ -48,6 +52,8 @@ python setup/setup_dataset_syn2real.py \
 --n_convolution_spp 3 \
 --min_predict_depth 0.1 \
 --max_predict_depth 8.0 \
+--input_root_dirpath void_release \
+--output_root_dirpath void_learning_topology \
 --train_output_depth_path training/void/void_train_predict_depth_150.txt \
 --val_output_depth_path testing/void/void_test_predict_depth_150.txt \
 --test_output_depth_path testing/void/void_test_predict_depth_150.txt \

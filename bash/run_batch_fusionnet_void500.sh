@@ -11,10 +11,10 @@ for n in $(seq $2 $3 $4)
 do
 python src/run_fusionnet.py \
 --restore_path $1/model.ckpt-$n \
---image_path testing/void/void_test_image_1500.txt \
---input_depth_path testing/void/void_test_predict_depth_1500.txt \
---sparse_depth_path testing/void/void_test_sparse_depth_1500.txt \
---ground_truth_path testing/void/void_test_ground_truth_1500.txt \
+--image_path testing/void/void_test_image_500.txt \
+--input_depth_path testing/void/void_test_predict_depth_500.txt \
+--sparse_depth_path testing/void/void_test_sparse_depth_500.txt \
+--ground_truth_path testing/void/void_test_ground_truth_500.txt \
 --n_batch 8 \
 --n_height 480 \
 --n_width 640 \
@@ -31,6 +31,6 @@ python src/run_fusionnet.py \
 --max_residual_depth 1000.0 \
 --min_evaluate_depth 0.2 \
 --max_evaluate_depth 5.0 \
---output_path $1/outputs/void1500 \
+--output_path $1/outputs/void500 \
 --n_thread 4
 done
