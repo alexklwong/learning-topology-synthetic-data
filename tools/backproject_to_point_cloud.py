@@ -12,6 +12,7 @@ parser.add_argument('--depth_path', required=True, help='Path to file containing
 parser.add_argument('--intrinsics_path', required=True, help='Path to file containing paths to intrinsics')
 parser.add_argument('--backproject_and_color', action='store_true')
 parser.add_argument('--image_triplet', action='store_true')
+parser.add_argument('--aligned_paths', action='store_true')
 parser.add_argument('--output_dirpath', required=True, help='Path to directory to save the point cloud files')
 
 args = parser.parse_args()
@@ -94,7 +95,6 @@ def write_point_cloud(path, point_cloud):
         xyz = point_cloud[0:3, :]
         rgb = point_cloud[3:6, :].astype(np.uint8)
 
-
     with open(path, 'wb') as f:
 
         n_point = point_cloud.shape[1]
@@ -121,6 +121,7 @@ def write_point_cloud(path, point_cloud):
                 rgb[0, n].tostring(),
                 rgb[1, n].tostring(),
                 rgb[2, n].tostring())))
+
 
 if __name__ == '__main__':
 
@@ -149,27 +150,30 @@ if __name__ == '__main__':
 
         depth_path = depth_paths[idx]
 
-        filename_depth = os.path.basename(depth_path)
+        if not args.aligned_paths:
+            filename_depth = os.path.basename(depth_path)
 
-        found_image_path = False
-        for image_path in image_paths:
+            found_image_path = False
+            for image_path in image_paths:
+                if filename_depth in image_path:
+                    found_image_path = True
+                    break
 
-            if filename_depth in image_path:
-                found_image_path = True
-                break
+            assert found_image_path
 
-        assert found_image_path
+            sequence_dirpath = image_path.split(os.sep)[-3]
 
-        sequence_dirpath = image_path.split(os.sep)[-3]
+            found_intrinsics_path = False
+            for intrinsics_path in intrinsics_paths:
 
-        found_intrinsics_path = False
-        for intrinsics_path in intrinsics_paths:
+                if sequence_dirpath in intrinsics_path or filename_depth in intrinsics_path:
+                    found_intrinsics_path = True
+                    break
 
-            if sequence_dirpath in intrinsics_path:
-                found_intrinsics_path = True
-                break
-
-        assert found_intrinsics_path
+            assert found_intrinsics_path
+        else:
+            image_path = image_paths[idx]
+            intrinsics_path = intrinsics_paths[idx]
 
         # Load image, depth and intrinsics from file
         if args.backproject_and_color:
