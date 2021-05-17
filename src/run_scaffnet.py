@@ -65,6 +65,8 @@ parser.add_argument('--max_evaluate_depth',
 # Output options
 parser.add_argument('--save_outputs',
     action='store_true', help='If set, then save outputs')
+parser.add_argument('--keep_input_filenames',
+    action='store_true', help='If set then keep original input filenames')
 parser.add_argument('--output_path',
     type=str, default='output', help='Path to save outputs')
 # Hardware settings
@@ -197,6 +199,11 @@ with tf.Graph().as_default():
 
         for idx in range(n_sample):
             output_depth = np.squeeze(output_depths[idx, ...])
-            _, filename = os.path.split(sparse_depth_paths[idx])
+
+            if args.keep_input_filenames:
+                filename = os.path.basename(sparse_depth_paths[idx])
+            else:
+                filename = '{:010d}.png'.format(idx)
+
             output_path = os.path.join(output_dirpath, filename)
             data_utils.save_depth(output_depth, output_path)
