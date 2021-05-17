@@ -35,8 +35,8 @@ parser.add_argument('--vmax',                    type=float, default=100.0)
 args = parser.parse_args()
 
 
-if not os.path.exists(args.visualization_dirpath):
-    os.mkdir(args.visualization_dirpath)
+if not os.path.exists(args.visualization_path):
+    os.mkdir(args.visualization_path)
 
 '''
 Fetch file paths from input directories
@@ -91,7 +91,7 @@ for idx in range(n_sample):
 
     # Set up output path
     filename = os.path.basename(image_path)
-    visualization_path = os.path.join(args.visualization_dirpath, filename)
+    visualization_path = os.path.join(args.visualization_path, filename)
 
     # Load image, sparse depth and output depth (and groundtruth)
     image = Image.open(image_paths[idx]).convert('RGB')
