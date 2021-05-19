@@ -2,6 +2,7 @@ import os, sys, glob, subprocess, argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import matplotlib.cm as cm
 from PIL import Image
 import warnings
 warnings.filterwarnings("ignore")
@@ -33,6 +34,10 @@ parser.add_argument('--vmin',                    type=float, default=0.10)
 parser.add_argument('--vmax',                    type=float, default=100.0)
 
 args = parser.parse_args()
+
+
+cmap = cm.get_cmap(name=args.cmap)
+cmap.set_under(color='black')
 
 
 if not os.path.exists(args.visualization_path):
@@ -76,6 +81,7 @@ if ground_truth_available:
 
     assert n_sample == len(ground_truth_paths)
 
+
 '''
 Process image, sparse depth and output depth (and groundtruth)
 '''
@@ -90,7 +96,7 @@ for idx in range(n_sample):
     output_depth_path = output_depth_paths[idx]
 
     # Set up output path
-    filename = os.path.basename(image_path)
+    filename = os.path.basename(output_depth_path)
     visualization_path = os.path.join(args.visualization_path, filename)
 
     # Load image, sparse depth and output depth (and groundtruth)
@@ -124,7 +130,7 @@ for idx in range(n_sample):
 
     ax = plt.subplot(gs[1, 0])
     config_plt()
-    ax.imshow(sparse_depth, vmin=args.vmin, vmax=args.vmax, cmap=args.cmap)
+    ax.imshow(sparse_depth, vmin=args.vmin, vmax=args.vmax, cmap=cmap)
 
     ax = plt.subplot(gs[2, 0])
     config_plt()

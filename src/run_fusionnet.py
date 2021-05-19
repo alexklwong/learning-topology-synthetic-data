@@ -95,13 +95,13 @@ if not os.path.exists(args.output_path):
     os.makedirs(args.output_path)
 
 # Load image, input depth, and sparse depth from file for evaluation
-image_paths = sorted(data_utils.read_paths(args.image_path))
+image_paths = data_utils.read_paths(args.image_path)
 image_paths = image_paths[args.start_idx:args.end_idx]
 
-input_depth_paths = sorted(data_utils.read_paths(args.input_depth_path))
+input_depth_paths = data_utils.read_paths(args.input_depth_path)
 input_depth_paths = input_depth_paths[args.start_idx:args.end_idx]
 
-sparse_depth_paths = sorted(data_utils.read_paths(args.sparse_depth_path))
+sparse_depth_paths = data_utils.read_paths(args.sparse_depth_path)
 sparse_depth_paths = sparse_depth_paths[args.start_idx:args.end_idx]
 
 n_sample = len(image_paths)
@@ -120,7 +120,7 @@ ground_truth_available = True if args.ground_truth_path != '' else False
 ground_truths = []
 
 if ground_truth_available:
-    ground_truth_paths = sorted(data_utils.read_paths(args.ground_truth_path))
+    ground_truth_paths = data_utils.read_paths(args.ground_truth_path)
     ground_truth_paths = ground_truth_paths[args.start_idx:args.end_idx]
 
     assert n_sample == len(ground_truth_paths)

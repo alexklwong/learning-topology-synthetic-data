@@ -85,7 +85,7 @@ if not os.path.exists(args.output_path):
     os.makedirs(args.output_path)
 
 # Load sparse depth and validity map paths from file for evaluation
-sparse_depth_paths = sorted(data_utils.read_paths(args.sparse_depth_path))
+sparse_depth_paths = data_utils.read_paths(args.sparse_depth_path)
 sparse_depth_paths = sparse_depth_paths[args.start_idx:args.end_idx]
 
 n_sample = len(sparse_depth_paths)
@@ -99,7 +99,7 @@ ground_truth_available = True if args.ground_truth_path != '' else False
 ground_truths = []
 
 if ground_truth_available:
-    ground_truth_paths = sorted(data_utils.read_paths(args.ground_truth_path))
+    ground_truth_paths = data_utils.read_paths(args.ground_truth_path)
     ground_truth_paths = ground_truth_paths[args.start_idx:args.end_idx]
 
     assert n_sample == len(ground_truth_paths)
