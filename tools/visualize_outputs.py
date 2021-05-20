@@ -40,8 +40,22 @@ cmap = cm.get_cmap(name=args.cmap)
 cmap.set_under(color='black')
 
 
-if not os.path.exists(args.visualization_path):
-    os.mkdir(args.visualization_path)
+image_viz_dirpath = os.path.join(args.visualization_path, 'image')
+sparse_depth_viz_dirpath = os.path.join(args.visualization_path, 'sparse_depth')
+output_depth_viz_dirpath = os.path.join(args.visualization_path, 'output_depth')
+figure_viz_dirpath = os.path.join(args.visualization_path, 'figure')
+
+dirpaths = [
+    image_viz_dirpath,
+    sparse_depth_viz_dirpath,
+    output_depth_viz_dirpath,
+    figure_viz_dirpath
+]
+
+for dirpath in dirpaths:
+    if not os.path.exists(dirpath):
+        os.mkdir(dirpath)
+
 
 '''
 Fetch file paths from input directories
@@ -97,7 +111,7 @@ for idx in range(n_sample):
 
     # Set up output path
     filename = os.path.basename(output_depth_path)
-    visualization_path = os.path.join(args.visualization_path, filename)
+    figure_viz_path = os.path.join(figure_viz_dirpath, filename)
 
     # Load image, sparse depth and output depth (and groundtruth)
     image = Image.open(image_paths[idx]).convert('RGB')
@@ -109,6 +123,40 @@ for idx in range(n_sample):
     sparse_depth = data_utils.load_depth(sparse_depth_path)
 
     output_depth = data_utils.load_depth(output_depth_path)
+
+    # Save image, sparse depth and output depth
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    config_plt()
+    ax.imshow(image)
+
+    image_viz_path = os.path.join(image_viz_dirpath, filename)
+
+    plt.savefig(image_viz_path)
+    plt.close()
+    subprocess.call(["convert", "-trim", image_viz_path, image_viz_path])
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    config_plt()
+    ax.imshow(sparse_depth, vmin=args.vmin, vmax=args.vmax, cmap=cmap)
+
+    sparse_depth_viz_path = os.path.join(sparse_depth_viz_dirpath, filename)
+
+    plt.savefig(sparse_depth_viz_path)
+    plt.close()
+    subprocess.call(["convert", "-trim", sparse_depth_viz_path, sparse_depth_viz_path])
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    config_plt()
+    ax.imshow(output_depth, vmin=args.vmin, vmax=args.vmax, cmap=cmap)
+
+    output_depth_viz_path = os.path.join(output_depth_viz_dirpath, filename)
+
+    plt.savefig(output_depth_viz_path)
+    plt.close()
+    subprocess.call(["convert", "-trim", output_depth_viz_path, output_depth_viz_path])
 
     # Set number of rows in output visualization
     n_row = 3
@@ -151,6 +199,6 @@ for idx in range(n_sample):
         config_plt()
         ax.imshow(ground_truth, vmin=args.vmin, vmax=args.vmax, cmap=args.cmap)
 
-    plt.savefig(visualization_path)
+    plt.savefig(figure_viz_path)
     plt.close()
-    subprocess.call(["convert", "-trim", visualization_path, visualization_path])
+    subprocess.call(["convert", "-trim", figure_viz_path, figure_viz_path])
