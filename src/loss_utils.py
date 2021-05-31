@@ -1,5 +1,26 @@
+'''
+Authors: Alex Wong <alexw@cs.ucla.edu>, Safa Cicek <safacicek@ucla.edu>
+
+If this code is useful to you, please cite the following paper:
+A. Wong, S. Cicek, and S. Soatto. Learning topology from synthetic data for unsupervised depth completion.
+In the Robotics and Automation Letters (RA-L) 2021 and Proceedings of International Conference on Robotics and Automation (ICRA) 2021
+
+@article{wong2021learning,
+    title={Learning topology from synthetic data for unsupervised depth completion},
+    author={Wong, Alex and Cicek, Safa and Soatto, Stefano},
+    journal={IEEE Robotics and Automation Letters},
+    volume={6},
+    number={2},
+    pages={1495--1502},
+    year={2021},
+    publisher={IEEE}
+}
+'''
 # Mostly based on the code written by Tinghui Zhou:
 # https://github.com/tinghuiz/SfMLearner/blob/master/utils.py
+# and code written by Alex Wong and Xiaohan Fei:
+# https://github.com/alexklwong/unsupervised-depth-completion-visual-inertial-odometry
+
 from __future__ import division
 import numpy as np
 import tensorflow as tf
