@@ -179,8 +179,8 @@ Additionally, we have scripts to do batch evaluation over a directory of checkpo
 ```
 bash bash/run_batch_scaffnet_kitti.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
 bash bash/run_batch_scaffnet_void1500.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
-bash bash/run_batch_scaffnet_kitti.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
 bash bash/run_batch_fusionnet_kitti.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
+bash bash/run_batch_fusionnet_void1500.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
 ```
 
 ## Training ScaffNet and FusionNet <a name="training-scaffnet-fusionnet"></a>
@@ -232,6 +232,11 @@ You may also find the following projects useful:
 - [VOID][void_github]: from *Unsupervised Depth Completion from Visual Inertial Odometry*. A dataset, developed by the authors, containing indoor and outdoor scenes with non-trivial 6 degrees of freedom. The dataset is published along with this work in the Robotics and Automation Letters (RA-L) 2020 and the International Conference on Robotics and Automation (ICRA) 2020.
 - [XIVO][xivo_github]: The Visual-Inertial Odometry system developed at UCLA Vision Lab. This work is built on top of XIVO. The VOID dataset used by this work also leverages XIVO to obtain sparse points and camera poses.
 - [GeoSup][geosup_github]: *Geo-Supervised Visual Depth Prediction*. A single image depth prediction method developed by the authors, published in the Robotics and Automation Letters (RA-L) 2019 and the International Conference on Robotics and Automation (ICRA) 2019. This work was awarded **Best Paper in Robot Vision** at ICRA 2019.
+- [AdaReg][adareg_github]: *Bilateral Cyclic Constraint and Adaptive Regularization for Unsupervised Monocular Depth Prediction.* A single image depth prediction method that introduces adaptive regularization. This work was published in the proceedings of Conference on Computer Vision and Pattern Recognition (CVPR) 2019.
+
+We also have works in adversarial attacks on depth estimation methods:
+- [Stereopagnosia][stereopagnosia_github]: *Stereopagnosia: Fooling Stereo Networks with Adversarial Perturbations.* Adversarial perturbations for stereo depth estimation, published in the Proceedings of AAAI Conference on Artificial Intelligence (AAAI) 2021.
+- [Targeted Attacks for Monodepth][targeted_attacks_monodepth_github]: *Targeted Adversarial Perturbations for Monocular Depth Prediction.* Targeted adversarial perturbations attacks for monocular depth estimation, published in the proceedings of Neural Information Processing Systems (NeurIPS) 2020.
 
 [kitti_dataset]: http://www.cvlibs.net/datasets/kitti/
 [vkitti_dataset]: https://europe.naverlabs.com/research/computer-vision/proxy-virtual-worlds-vkitti-1/
@@ -240,6 +245,9 @@ You may also find the following projects useful:
 [voiced_github]: https://github.com/alexklwong/unsupervised-depth-completion-visual-inertial-odometry
 [xivo_github]: https://github.com/ucla-vision/xivo
 [geosup_github]: https://github.com/feixh/GeoSup
+[adareg_github]: https://github.com/alexklwong/adareg-monodispnet
+[stereopagnosia_github]: https://github.com/alexklwong/stereopagnosia
+[targeted_attacks_monodepth_github]: https://github.com/alexklwong/targeted-adversarial-perturbations-monocular-depth
 
 ## License and disclaimer <a name="license-disclaimer"></a>
 This software is property of the UC Regents, and is provided free of charge for research purposes only. It comes with no warranties, expressed or implied, according to these [terms and conditions](license). For commercial use, please contact [UCLA TDG](https://tdg.ucla.edu).
