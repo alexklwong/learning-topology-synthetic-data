@@ -5,6 +5,7 @@ best_models_kitti
 best_models_scenenet
 best_models_void
 pretrained_models
+pretrained_models.zip
 trained_fusionnet
 trained_scaffnet
 data
