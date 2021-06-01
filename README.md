@@ -37,11 +37,11 @@ If this work is useful to you, please cite our paper:
 ## About sparse-to-dense depth completion <a name="about-sparse-to-dense"></a>
 In the sparse-to-dense depth completion problem, we seek to infer the dense depth map of a 3-D scene using an RGB image and its associated sparse depth measurements in the form of a sparse depth map, obtained either from computational methods such as SfM (Strcuture-from-Motion) or active sensors such as lidar or structured light sensors.
 
-| *RGB image from the VOID dataset*    | *Densified depth map -- colored and backprojected to 3D* |
+| *RGB image from the VOID dataset*    | *Our densified depth map -- colored and backprojected to 3D* |
 | :----------------------------------------: | :--------------------------------------------------------: |
 | <img src="figures/void_teaser_image.png" width="400"> | <img src="figures/void_teaser_pointcloud.gif" width="400"> |
 
-| *RGB image from the KITTI dataset*    | *Densified depth map -- colored and backprojected to 3D* |
+| *RGB image from the KITTI dataset*    | *Our densified depth map -- colored and backprojected to 3D* |
 | :-----------------------------------------: | :--------------------------------------------------------: |
 | <img src="figures/kitti_teaser_image.png" width="400"> | <img src="figures/kitti_teaser_pointcloud.gif" width="400"> |
 
@@ -122,7 +122,7 @@ Note: `gdown` fails intermittently and complains about permission. If that happe
 https://drive.google.com/file/d/1K5aiI3aIwsMC85LcwgeUAeEQkxK-vEdH/view?usp=sharing
 ```
 
-We note that if you would like to directly [train FusionNet](#training-voiced), you may use our pretrained ScaffNet model.
+We note that if you would like to directly [train FusionNet](#training-scaffnet-fusionnet), you may use our pretrained ScaffNet model.
 
 In addition to models trained with code at the time of the submission of our paper, for reproducibility, we've retrained both ScaffNet and FusionNet after code clean up. You will find both paper and retrained models in the `pretrained_models` directory. For example
 ```
