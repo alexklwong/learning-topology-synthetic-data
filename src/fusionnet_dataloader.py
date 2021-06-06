@@ -29,6 +29,7 @@ class FusionNetDataloader(object):
     (3) if training, image at time t + 1
     (4) input (predicted) depth with sparse depth at time t
     (5) if training, 3 x 3 intrinsics matrix
+    (6) if training, ground truth at time t if not None
 
     Args:
         shape : list[int]
@@ -70,6 +71,7 @@ class FusionNetDataloader(object):
             self.input_depth_placeholder = tf.placeholder(tf.string, shape=[None])
             self.sparse_depth_placeholder = tf.placeholder(tf.string, shape=[None])
             self.intrinsics_placeholder = tf.placeholder(tf.string, shape=[None])
+            self.ground_truth_placeholder = tf.placeholder(tf.string, shape=[None])
 
             if is_training:
                 # Set up crop and data augmentation placeholders
@@ -86,7 +88,8 @@ class FusionNetDataloader(object):
                     self.image_placeholder,
                     self.input_depth_placeholder,
                     self.sparse_depth_placeholder,
-                    self.intrinsics_placeholder))
+                    self.intrinsics_placeholder,
+                    self.ground_truth_placeholder))
 
                 self.dataset = self.dataset \
                     .map(self._load_func, num_parallel_calls=self.n_thread) \
@@ -123,6 +126,9 @@ class FusionNetDataloader(object):
                     [self.n_batch, self.n_height, self.n_width, 2])
                 # Camera intrinsics 3x3 matrix
                 self.next_element[4].set_shape([self.n_batch, 3, 3])
+                # Ground truth depth
+                self.next_element[5].set_shape(
+                    [self.n_batch, self.n_height, self.n_width, 1])
             else:
                 # Input depth and sparse depth
                 self.next_element[1].set_shape(
@@ -132,7 +138,8 @@ class FusionNetDataloader(object):
                    image_path,
                    input_depth_path,
                    sparse_depth_path,
-                   intrinsics_path=None):
+                   intrinsics_path=None,
+                   ground_truth_path=None):
         '''
         Load function for:
         (1) image at time t
@@ -140,6 +147,7 @@ class FusionNetDataloader(object):
         (3) if training, image at time t + 1
         (4) input depth at time t
         (5) if training, 3 x 3 intrinsics matrix
+        (6) if training, ground truth at time t if not None
 
         Args:
             image_path : str
@@ -150,12 +158,15 @@ class FusionNetDataloader(object):
                 path to sparse depth map
             intrinsics_path : str
                 path to 3 x 3 camera intrinsics
+            ground_truth_path : str
+                path to ground truth depth map
         Returns:
             tensor : H x W x 3 RGB image at time t
             tensor : if training, H x W x 3 RGB image at time t - 1
             tensor : if training, H x W x 3 RGB image at time t + 1
             tensor : H x W x 2 input (predicted) depth and sparse depth/validity map
             tensor : if training, 3 x 3 camera intrinsics matrix
+            tensor : if training, ground truth at time t if not None
         '''
 
         with tf.variable_scope('load_func'):
@@ -183,7 +194,11 @@ class FusionNetDataloader(object):
                 # Load camera intrinsics
                 intrinsics = self._load_intrinsics_func(intrinsics_path)
 
-                return (image0, image1, image2, input_depth, intrinsics)
+                # Ground truth depth
+                ground_truth = self._load_depth_func(ground_truth_path)
+                ground_truth = tf.expand_dims(ground_truth, axis=-1)
+
+                return (image0, image1, image2, input_depth, intrinsics, ground_truth)
             else:
                 return (image0, input_depth)
 
@@ -192,7 +207,8 @@ class FusionNetDataloader(object):
                    image1,
                    image2,
                    input_depth,
-                   intrinsics):
+                   intrinsics,
+                   ground_truth):
         '''
         Crops images and input depth to specified shape
 
@@ -207,15 +223,18 @@ class FusionNetDataloader(object):
                 H x W x 2 input depth of sparse depth and validity map
             intrinsics : tensor
                 3 x 3 camera intrinsics matrix
+            ground_truth : str
+                H x W x 1 ground truth depth
         Returns:
             tensor : h x w x 3 RGB image at time t
             tensor : h x w x 3 RGB image at time t - 1
             tensor : h x w x 3 RGB image at time t + 1
             tensor : h x w x 2 input depth of dense depth and sparse depth/validity map
             tensor : 3 x 3 camera intrinsics matrix
+            tensor : h x w x 1 ground truth depth
         '''
 
-        def crop_func(in0, in1, in2, in3, k, random_horizontal_crop, random_vertical_crop):
+        def crop_func(in0, in1, in2, in3, k, in4, random_horizontal_crop, random_vertical_crop):
             # Center crop to specified height and width, default bottom centered
             shape = tf.shape(in0)
 
@@ -251,6 +270,7 @@ class FusionNetDataloader(object):
             in1 = in1[start_height:end_height, start_width:end_width, :]
             in2 = in2[start_height:end_height, start_width:end_width, :]
             in3 = in3[start_height:end_height, start_width:end_width, :]
+            in4 = in4[start_height:end_height, start_width:end_width, :]
 
             # Adjust camera intrinsics after crop
             k_adj = tf.to_float([
@@ -259,10 +279,10 @@ class FusionNetDataloader(object):
                 [0, 0, 0            ]])
             k = k + k_adj
 
-            return in0, in1, in2, in3, k
+            return in0, in1, in2, in3, k, in4
 
         with tf.variable_scope('crop_func'):
-            image0, image1, image2, input_depth, intrinsics, = tf.cond(
+            image0, image1, image2, input_depth, intrinsics, ground_truth = tf.cond(
                 tf.math.logical_or(self.center_crop_placeholder, self.bottom_crop_placeholder),
                 lambda: crop_func(
                     image0,
@@ -270,11 +290,12 @@ class FusionNetDataloader(object):
                     image2,
                     input_depth,
                     intrinsics,
+                    ground_truth,
                     self.random_horizontal_crop_placeholder,
                     self.random_vertical_crop_placeholder),
-                lambda: (image0, image1, image2, input_depth, intrinsics))
+                lambda: (image0, image1, image2, input_depth, intrinsics, ground_truth))
 
-            return (image0, image1, image2, input_depth, intrinsics)
+            return (image0, image1, image2, input_depth, intrinsics, ground_truth)
 
     def _load_image_composite_func(self, path):
         '''
@@ -426,6 +447,7 @@ class FusionNetDataloader(object):
                    input_depth_paths=None,
                    sparse_depth_paths=None,
                    intrinsics_paths=None,
+                   ground_truth_paths=None,
                    load_image_composite=True,
                    do_center_crop=False,
                    do_bottom_crop=False,
@@ -440,6 +462,7 @@ class FusionNetDataloader(object):
                 self.input_depth_placeholder            : input_depth_paths,
                 self.sparse_depth_placeholder           : sparse_depth_paths,
                 self.intrinsics_placeholder             : intrinsics_paths,
+                self.ground_truth_placeholder           : ground_truth_paths,
                 self.center_crop_placeholder            : do_center_crop,
                 self.bottom_crop_placeholder            : do_bottom_crop,
                 self.random_horizontal_crop_placeholder : random_horizontal_crop,
@@ -473,6 +496,7 @@ if __name__ == '__main__':
     input_depth_paths = data_utils.read_paths(input_depth_filepath)
     sparse_depth_paths = data_utils.read_paths(sparse_depth_filepath)
     intrinsics_paths = data_utils.read_paths(intrinsics_filepath)
+    ground_truth_paths = sparse_depth_paths
 
     n_height = 320
     n_width = 768
@@ -491,6 +515,7 @@ if __name__ == '__main__':
         input_depth_paths=input_depth_paths,
         sparse_depth_paths=sparse_depth_paths,
         intrinsics_paths=intrinsics_paths,
+        ground_truth_paths=ground_truth_paths,
         do_center_crop=False,
         do_bottom_crop=True,
         random_horizontal_crop=True,
@@ -505,7 +530,7 @@ if __name__ == '__main__':
 
     while True:
         try:
-            image0, image1, image2, input_depth, intrinsics = \
+            image0, image1, image2, input_depth, intrinsics, _ = \
                 session.run(dataloader.next_element)
 
             # Test shapes

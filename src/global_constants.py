@@ -73,6 +73,7 @@ W_COLOR                             = 0.20
 W_STRUCTURE                         = 0.80
 W_SMOOTHNESS                        = 0.01
 W_SPARSE_DEPTH                      = 0.20
+W_GROUND_TRUTH                      = 0.00
 W_PRIOR_DEPTH                       = 0.10
 RESIDUAL_THRESHOLD_PRIOR_DEPTH      = 0.30
 ROTATION_PARAM                      = 'euler'

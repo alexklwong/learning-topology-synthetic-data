@@ -34,6 +34,7 @@ def train(train_image_path,
           train_input_depth_path,
           train_sparse_depth_path,
           train_intrinsics_path,
+          train_ground_truth_path=None,
           # Validation data filepaths
           val_image_path=None,
           val_input_depth_path=None,
@@ -67,6 +68,7 @@ def train(train_image_path,
           w_color=settings.W_COLOR,
           w_structure=settings.W_STRUCTURE,
           w_sparse_depth=settings.W_SPARSE_DEPTH,
+          w_ground_truth=settings.W_GROUND_TRUTH,
           w_smoothness=settings.W_SMOOTHNESS,
           w_prior_depth=settings.W_PRIOR_DEPTH,
           residual_threshold_prior_depth=settings.RESIDUAL_THRESHOLD_PRIOR_DEPTH,
@@ -97,6 +99,13 @@ def train(train_image_path,
     assert n_train_sample == len(train_input_depth_paths)
     assert n_train_sample == len(train_sparse_depth_paths)
     assert n_train_sample == len(train_intrinsics_paths)
+
+    if train_ground_truth_path is not None:
+        train_ground_truth_paths = data_utils.read_paths(train_ground_truth_path)
+
+        assert n_train_sample == len(train_ground_truth_paths)
+    else:
+        train_ground_truth_paths = train_sparse_depth_paths.copy()
 
     n_train_step = n_epoch * np.ceil(n_train_sample / n_batch).astype(np.int32)
 
@@ -177,6 +186,8 @@ def train(train_image_path,
         input_depth = dataloader.next_element[3]
         intrinsics = dataloader.next_element[4]
 
+        ground_truth = dataloader.next_element[5]
+
         # Build computation graph
         model = FusionNetModel(
             image0=image0,
@@ -184,6 +195,7 @@ def train(train_image_path,
             image2=image2,
             input_depth=input_depth,
             intrinsics=intrinsics,
+            ground_truth=ground_truth,
             is_training=True,
             network_type=network_type,
             image_filter_pct=image_filter_pct,
@@ -199,6 +211,7 @@ def train(train_image_path,
             w_color=w_color,
             w_structure=w_structure,
             w_sparse_depth=w_sparse_depth,
+            w_ground_truth=w_ground_truth,
             w_smoothness=w_smoothness,
             w_prior_depth=w_prior_depth,
             residual_threshold_prior_depth=residual_threshold_prior_depth,
@@ -254,8 +267,8 @@ def train(train_image_path,
             n_train_step), log_path)
         log('validity_map_color=%s' %
             (validity_map_color), log_path)
-        log('w_color=%.2f  w_structure=%.2f  w_sparse_depth=%.2f' %
-            (w_color, w_structure, w_sparse_depth), log_path)
+        log('w_color=%.2f  w_structure=%.2f  w_sparse_depth=%.2f  w_ground_truth=%.2f' %
+            (w_color, w_structure, w_sparse_depth, w_ground_truth), log_path)
         log('w_smoothness=%.3f  w_prior_depth=%.2f' %
             (w_smoothness, w_prior_depth), log_path)
         log('residual_threshold_prior_depth=%.2f' %
@@ -326,12 +339,14 @@ def train(train_image_path,
         train_image_paths_epoch, \
             train_input_depth_paths_epoch, \
             train_sparse_depth_paths_epoch, \
-            train_intrinsics_paths_epoch = data_utils.make_epoch(
+            train_intrinsics_paths_epoch, \
+            train_ground_truth_paths_epoch = data_utils.make_epoch(
                 input_arr=[
                     train_image_paths,
                     train_input_depth_paths,
                     train_sparse_depth_paths,
-                    train_intrinsics_paths],
+                    train_intrinsics_paths,
+                    train_ground_truth_paths],
                 n_batch=n_batch)
 
         # Feed input paths into dataloader for training
@@ -341,6 +356,7 @@ def train(train_image_path,
             input_depth_paths=train_input_depth_paths_epoch,
             sparse_depth_paths=train_sparse_depth_paths_epoch,
             intrinsics_paths=train_intrinsics_paths_epoch,
+            ground_truth_paths=train_ground_truth_paths_epoch,
             do_center_crop=do_center_crop,
             do_bottom_crop=do_bottom_crop,
             random_horizontal_crop=augmentation_random_horizontal_crop,
@@ -380,6 +396,7 @@ def train(train_image_path,
                         input_depth_paths=val_input_depth_paths,
                         sparse_depth_paths=val_sparse_depth_paths,
                         intrinsics_paths=train_intrinsics_paths[0:len(val_image_paths)],
+                        ground_truth_paths=val_sparse_depth_paths,
                         do_center_crop=do_center_crop,
                         do_bottom_crop=do_bottom_crop,
                         random_horizontal_crop=False,
@@ -412,6 +429,7 @@ def train(train_image_path,
                         input_depth_paths=train_input_depth_paths_epoch[current_sample:],
                         sparse_depth_paths=train_sparse_depth_paths_epoch[current_sample:],
                         intrinsics_paths=train_intrinsics_paths_epoch[current_sample:],
+                        ground_truth_paths=train_ground_truth_paths_epoch[current_sample:],
                         do_center_crop=do_center_crop,
                         do_bottom_crop=do_bottom_crop,
                         random_horizontal_crop=augmentation_random_horizontal_crop,
@@ -428,12 +446,14 @@ def train(train_image_path,
                 train_image_paths_epoch, \
                     train_input_depth_paths_epoch, \
                     train_sparse_depth_paths_epoch, \
-                    train_intrinsics_paths_epoch, = data_utils.make_epoch(
+                    train_intrinsics_paths_epoch, \
+                    train_ground_truth_paths_epoch = data_utils.make_epoch(
                         input_arr=[
                             train_image_paths,
                             train_input_depth_paths,
                             train_sparse_depth_paths,
-                            train_intrinsics_paths],
+                            train_intrinsics_paths,
+                            train_ground_truth_paths],
                         n_batch=n_batch)
 
                 # Feed input paths into dataloader for training
@@ -443,6 +463,7 @@ def train(train_image_path,
                     input_depth_paths=train_input_depth_paths_epoch,
                     sparse_depth_paths=train_sparse_depth_paths_epoch,
                     intrinsics_paths=train_intrinsics_paths_epoch,
+                    ground_truth_paths=train_ground_truth_paths_epoch,
                     do_center_crop=do_center_crop,
                     do_bottom_crop=do_bottom_crop,
                     random_horizontal_crop=augmentation_random_horizontal_crop,

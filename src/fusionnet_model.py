@@ -30,6 +30,7 @@ class FusionNetModel(object):
                  image1=None,
                  image2=None,
                  intrinsics=None,
+                 ground_truth=None,
                  is_training=True,
                  # Network architecture
                  network_type=settings.NETWORK_TYPE_FUSIONNET,
@@ -48,6 +49,7 @@ class FusionNetModel(object):
                  w_color=settings.W_COLOR,
                  w_structure=settings.W_STRUCTURE,
                  w_sparse_depth=settings.W_SPARSE_DEPTH,
+                 w_ground_truth=settings.W_GROUND_TRUTH,
                  w_smoothness=settings.W_SMOOTHNESS,
                  w_prior_depth=settings.W_PRIOR_DEPTH,
                  residual_threshold_prior_depth=settings.RESIDUAL_THRESHOLD_PRIOR_DEPTH,
@@ -59,6 +61,7 @@ class FusionNetModel(object):
         self.image2 = image2
         self.intrinsics = intrinsics
         self.prior_depth = tf.expand_dims(input_depth[..., 0], axis=-1)
+        self.ground_truth = ground_truth
 
         # Depth prediction range
         self.min_predict_depth = min_predict_depth
@@ -74,6 +77,7 @@ class FusionNetModel(object):
         self.w_structure = w_structure
         self.w_smoothness = w_smoothness
         self.w_sparse_depth = w_sparse_depth
+        self.w_ground_truth = w_ground_truth
         self.w_prior_depth = w_prior_depth
         self.residual_threshold_prior_depth = residual_threshold_prior_depth
 
@@ -257,10 +261,13 @@ class FusionNetModel(object):
         loss_structure = loss_structure01 + loss_structure02
 
         # Construct sparse depth loss
-        loss_sparse_depth = losses.sparse_depth_loss_func(
-            self.output_depth,
-            self.sparse_depth,
-            self.validity_map_sparse_depth)
+        if self.w_sparse_depth > 0.0:
+            loss_sparse_depth = losses.sparse_depth_loss_func(
+                self.output_depth,
+                self.sparse_depth,
+                self.validity_map_sparse_depth)
+        else:
+            loss_sparse_depth = 0.0
 
         # Construct smoothness loss
         loss_smoothness = \
@@ -310,12 +317,25 @@ class FusionNetModel(object):
         else:
             loss_prior_depth = 0.0
 
+        if self.w_ground_truth > 0.0:
+            # Create validity map on ground truth
+            self.validity_map_ground_truth = tf.where(
+                self.ground_truth > 0,
+                tf.ones_like(self.ground_truth),
+                tf.zeros_like(self.ground_truth))
+
+            loss_ground_truth = losses.sparse_depth_loss_func(
+                self.output_depth,
+                self.ground_truth,
+                self.validity_map_ground_truth)
+
         # Construct total loss
         loss = self.w_color * loss_color + \
             self.w_structure * loss_structure + \
             self.w_smoothness * loss_smoothness + \
-            self.w_sparse_depth * loss_sparse_depth +\
-            self.w_prior_depth * loss_prior_depth
+            self.w_sparse_depth * loss_sparse_depth + \
+            self.w_prior_depth * loss_prior_depth + \
+            self.w_ground_truth * loss_ground_truth
 
         # Construct summary
         with tf.name_scope('fusionnet'):

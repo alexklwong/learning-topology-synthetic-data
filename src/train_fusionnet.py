@@ -32,6 +32,8 @@ parser.add_argument('--train_sparse_depth_path',
     type=str, required=True, help='Paths to training sparse depth paths')
 parser.add_argument('--train_intrinsics_path',
     type=str, required=True, help='Paths to training intrinsics paths')
+parser.add_argument('--train_ground_truth_path',
+    type=str, default='', help='Paths to training ground truth paths')
 parser.add_argument('--val_image_path',
     type=str, default='', help='Paths to validation image composite paths')
 parser.add_argument('--val_input_depth_path',
@@ -91,6 +93,8 @@ parser.add_argument('--w_structure',
     type=float, default=settings.W_STRUCTURE, help='Weight of structural consistency')
 parser.add_argument('--w_sparse_depth',
     type=float, default=settings.W_SPARSE_DEPTH, help='Weight of sparse depth consistency')
+parser.add_argument('--w_ground_truth',
+    type=float, default=settings.W_GROUND_TRUTH, help='Weight of ground truth reconstruction')
 parser.add_argument('--w_smoothness',
     type=float, default=settings.W_SMOOTHNESS, help='Weight of local smoothness')
 parser.add_argument('--w_prior_depth',
@@ -124,6 +128,9 @@ if __name__ == '__main__':
 
     assert len(args.learning_rates) == (len(args.learning_schedule) + 1)
 
+    args.train_ground_truth_path = \
+        None if args.train_ground_truth_path == '' else args.train_ground_truth_path
+
     args.val_image_path = \
         None if args.val_image_path == '' else args.val_image_path
     args.val_input_depth_path = \
@@ -137,6 +144,7 @@ if __name__ == '__main__':
           train_input_depth_path=args.train_input_depth_path,
           train_sparse_depth_path=args.train_sparse_depth_path,
           train_intrinsics_path=args.train_intrinsics_path,
+          train_ground_truth_path=args.train_ground_truth_path,
           # Validation data filepaths
           val_image_path=args.val_image_path,
           val_input_depth_path=args.val_input_depth_path,
@@ -170,6 +178,7 @@ if __name__ == '__main__':
           w_color=args.w_color,
           w_structure=args.w_structure,
           w_sparse_depth=args.w_sparse_depth,
+          w_ground_truth=args.w_ground_truth,
           w_smoothness=args.w_smoothness,
           w_prior_depth=args.w_prior_depth,
           rotation_param=args.rotation_param,
