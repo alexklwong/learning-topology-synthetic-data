@@ -4,7 +4,7 @@ Tensorflow implementation of *Learning Topology from Synthetic Data for Unsuperv
 
 Published in RA-L January 2021 and ICRA 2021
 
-[[publication]](https://ieeexplore.ieee.org/document/9351588)
+[[publication]](https://ieeexplore.ieee.org/document/9351588) [[arxiv]](https://arxiv.org/pdf/2106.02994v1.pdf) [[talk]](https://www.youtube.com/watch?v=zGKH-OKPJD4)
 
 Model have been tested on Ubuntu 16.04, 20.04 using Python 3.5, 3.6, Tensorflow 1.14, 1.15
 
