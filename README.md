@@ -28,12 +28,12 @@ If this work is useful to you, please cite our paper:
 
 Checkout our ICCV 2021 oral paper, [KBNet][kbnet_github]: *Unsupervised Depth Completion with Calibrated Backprojection Layers*
 
-[KBNet][kbnet_github] runs at 15 ms/frame (67 fps) and improves over VOICED by 51.7% on indoors (VOID) and 13.7% on outdoors (KITTI)!
+[KBNet][kbnet_github] runs at 15 ms/frame (67 fps) and improves over ScaffNet on both indoor (VOID) and outdoor (KITTI) performance!
 
 ### Coming soon!
 Thanks for all the interest and inquiries! 
 
-We are planning on releasing PyTorch versions of VOICED and ScaffNet over the coming months!
+We are planning on releasing PyTorch versions of ScaffNet over the coming months!
 
 **Table of Contents**
 1. [About sparse-to-dense depth completion](#about-sparse-to-dense)
