@@ -93,7 +93,7 @@ pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycocotools==2.0.6
 pycparser==2.21
-Pygments==2.14.0
+Pygments>=2.15.0
 pyparsing==3.0.9
 pyquaternion==0.9.9
 pyrsistent==0.19.3
