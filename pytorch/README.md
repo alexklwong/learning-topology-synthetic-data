@@ -121,14 +121,14 @@ pretrained_models/scaffnet/scenenet/scaffnet-scenenet.pth
 pretrained_models/scaffnet/vkitti/scaffnet-vkitti.pth
 pretrained_models/fusionnet/void/fusionnet-void1500.pth
 ```
-Note that our PyTorch version of ScaffNet model on VOID1500 improves on MAE and RMSE over the Tensorflow version, but performs worse on iMAE and iRMSE and our FusionNet model improves across all metrics over the Tensorflow implementation. We will be releasing more pretrained models i.e. FusionNet on KITTI over the upcoming months. Stay tuned!
+Note that our PyTorch version of ScaffNet and FusionNet models on VOID1500 improves on MAE and RMSE over the Tensorflow version, but performs worse on iMAE and iRMSE. In terms of architecture, much of it stays the same, but we have modified the kernel size of spatial pyramid pooling to be 13, 17, 19, 21, and 25 to support both indoor and outdoor with the same set of parameters. We will be releasing more pretrained models i.e. FusionNet on KITTI over the upcoming months. Stay tuned!
 
 For KITTI:
 | Model                              | MAE    | RMSE    | iMAE  | iRMSE |
 | :----------------------------------| :----: | :-----: | :---: | :---: |
 | ScaffNet (paper - Tensorflow)      | 318.42 | 1425.54 | 1.40  | 5.01  |
 | ScaffNet (retrained - Tensorflow)  | 317.17 | 1425.95 | 1.40  | 4.95  |
-| ScaffNet (retrained - PyTorch)     |    -   |     -   |   -   |   -   |
+| ScaffNet (retrained - PyTorch)     | 346.67 | 1390.27 | 1.56  | 5.04 |
 | FusionNet (paper - Tensorflow)     | 286.32 | 1182.78 | 1.18  | 3.55  |
 | FusionNet (retrained - Tensorflow) | 282.97 | 1184.36 | 1.17  | 3.48  |
 | FusionNet (retrained - PyTorch)    |    -   |     -   |   -   |   -   |
