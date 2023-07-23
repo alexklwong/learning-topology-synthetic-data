@@ -1,12 +1,12 @@
 # Learning Topology from Synthetic Data for Unsupervised Depth Completion
 
-Tensorflow implementation of *Learning Topology from Synthetic Data for Unsupervised Depth Completion*
+PyTorch implementation of *Learning Topology from Synthetic Data for Unsupervised Depth Completion*
 
 Published in RA-L January 2021 and ICRA 2021
 
 [[publication]](https://ieeexplore.ieee.org/document/9351588) [[arxiv]](https://arxiv.org/pdf/2106.02994v1.pdf) [[talk]](https://www.youtube.com/watch?v=zGKH-OKPJD4)
 
-Model have been tested on Ubuntu 16.04, 20.04 using Python 3.5, 3.6, Tensorflow 1.14, 1.15 on CUDA 10.0
+Model have been tested on Ubuntu 20.04 using Python 3.7, 3.8, PyTorch 1.10 and CUDA 11.1
 
 Authors: [Alex Wong](http://web.cs.ucla.edu/~alexw/), [Safa Cicek](https://bsafacicek.github.io/)
 
@@ -53,14 +53,14 @@ pwd
 ## Setting up your virtual environment <a name="setting-up"></a>
 We will create a virtual environment with the necessary dependencies
 ```
-virtualenv -p /usr/bin/python3 scaffnet-fusionnet-py3env
-source scaffnet-fusionnet-py3env/bin/activate
-pip install opencv-python scipy scikit-learn scikit-image Pillow matplotlib gdown
-pip install tensorflow-gpu==1.15
+virtualenv -p /usr/bin/python3.8 voiced-torch-py3env
+source voiced-torch-py3env/bin/activate
+pip install -r requirements.txt
+pip install torch==1.10.0+cu111 torchvision==0.11.0+cu111 -f https://download.pytorch.org/whl/torch_stable.html
 ```
 
 ## Setting up your datasets
-For datasets, we will use [Virtual KITTI 1][vkitti_dataset] and [KITTI][kitti_dataset] for outdoors and [SceneNet][scenenet_dataset] and [VOID][void_github] for indoors. Note: We assume you have extracted the `vkitti_1.3.1_depthgt` within the `virtual_kitti` directory i.e. `/path/to/virtual_kitti/vkitti_1.3.1_depthgt`. If you already have all the datasets downloaded and extracted to the right form, you can create symbolic links to them via
+For datasets, we will use [Virtual KITTI 2][vkitti_dataset] and [KITTI][kitti_dataset] for outdoors and [SceneNet][scenenet_dataset] and [VOID][void_github] for indoors. Note: Unlike the original Tensorflow implementation, we use Virtual KITTI 2 and the setup script operates differently. We assume you have extracted the `vkitti_2.0.3_depth` within `virtual_kitti` directory i.e. `/path/to/virtual_kitti/vkitti_1.3.1_depthgt`. If you already have all the datasets downloaded and extracted to the right form, you can create symbolic links to them via
 ```
 mkdir data
 ln -s /path/to/virtual_kitti data/
@@ -70,13 +70,12 @@ ln -s /path/to/scenenet data/
 ln -s /path/to/void_release data/
 ```
 
-In case you do not already have KITTI and VOID datasets downloaded, we provide download scripts for them:
+In case you do not already have KITTI, Virtual KITTI 2, and VOID datasets downloaded, we provide download scripts for them:
 ```
 bash bash/setup_dataset_kitti.sh
 bash bash/setup_dataset_void.sh
+bash bash/setup_dataset_vkitti.sh
 ```
-
-For Virtual KITTI 1 and SceneNet, please visit [Virtual KITTI dataset][vkitti_dataset] and [SceneNet dataset][scenenet_dataset] to download them.
 
 The `bash/setup_dataset_void.sh` script downloads the VOID dataset using gdown. However, gdown intermittently fails. As a workaround, you may download them via:
 ```
@@ -102,96 +101,71 @@ and run the above again.
 
 For more detailed instructions on downloading and using VOID and obtaining the raw rosbags, you may visit the [VOID][void_github] dataset webpage.
 
-In case you already have KITTI, Virtual KITTI, SceneNet and/or VOID downloaded and in the right form, and have linked them to your data directory, you may also directly set up each of the datasets by using the following commands:
-```
-python setup/setup_dataset_kitti.py
-python setup/setup_dataset_vkitti.py
-python setup/setup_dataset_void.py
-python setup/setup_dataset_scenenet.py
-```
-
 ## Downloading our pretrained models <a name="downloading-pretrained-models"></a>
 To use our ScaffNet models trained on Virtual KITTI and SceneNet datasets, and our FusionNet models trained on KITTI and VOID datasets, you can download them from Google Drive
 ```
-gdown https://drive.google.com/uc?id=1K5aiI3aIwsMC85LcwgeUAeEQkxK-vEdH
-unzip pretrained_models-tensorflow.zip
+gdown https://drive.google.com/uc?id=1PSDGD7k8uf_IwAqQnXiHBBQyG_wn_hmT
+unzip pretrained_models-pytorch.zip
 ```
 
 Note: `gdown` fails intermittently and complains about permission. If that happens, you may also download the models via:
 ```
-https://drive.google.com/file/d/1K5aiI3aIwsMC85LcwgeUAeEQkxK-vEdH/view?usp=sharing
+https://drive.google.com/file/d/1PSDGD7k8uf_IwAqQnXiHBBQyG_wn_hmT/view?usp=sharing
 ```
 
 We note that if you would like to directly [train FusionNet](#training-scaffnet-fusionnet), you may use our pretrained ScaffNet model.
 
-In addition to models trained with code at the time of the submission of our paper, for reproducibility, we've retrained both ScaffNet and FusionNet after code clean up. You will find both paper and retrained models in the `pretrained_models` directory. For example
+For reproducibility, we have retrained both ScaffNet and FusionNet using the PyTorch implementation. We have released the pretrained weights in the `pretrained_models` directory. For example
 ```
-pretrained_models/fusionnet/kitti/paper/fusionnet.ckpt-kitti
-pretrained_models/fusionnet/kitti/retrained/fusionnet.ckpt-kitti
+pretrained_models/scaffnet/scenenet/scaffnet-scenenet.pth
+pretrained_models/scaffnet/vkitti/scaffnet-vkitti.pth
+pretrained_models/fusionnet/void/fusionnet-void1500.pth
 ```
+Note that our PyTorch version of ScaffNet model on VOID1500 improves on MAE and RMSE over the Tensorflow version, but performs worse on iMAE and iRMSE and our FusionNet model improves across all metrics over the Tensorflow implementation. We will be releasing more pretrained models i.e. FusionNet on KITTI over the upcoming months. Stay tuned!
 
 For KITTI:
-| Model                 | MAE    | RMSE    | iMAE  | iRMSE |
-| :-------------------- | :----: | :-----: | :---: | :---: |
-| ScaffNet (paper)      | 318.42 | 1425.54 | 1.40  | 5.01  |
-| ScaffNet (retrained)  | 317.17 | 1425.95 | 1.40  | 4.95  |
-| FusionNet (paper)     | 286.32 | 1182.78 | 1.18  | 3.55  |
-| FusionNet (retrained) | 282.97 | 1184.36 | 1.17  | 3.48  |
+| Model                              | MAE    | RMSE    | iMAE  | iRMSE |
+| :----------------------------------| :----: | :-----: | :---: | :---: |
+| ScaffNet (paper - Tensorflow)      | 318.42 | 1425.54 | 1.40  | 5.01  |
+| ScaffNet (retrained - Tensorflow)  | 317.17 | 1425.95 | 1.40  | 4.95  |
+| ScaffNet (retrained - PyTorch)     |    -   |     -   |   -   |   -   |
+| FusionNet (paper - Tensorflow)     | 286.32 | 1182.78 | 1.18  | 3.55  |
+| FusionNet (retrained - Tensorflow) | 282.97 | 1184.36 | 1.17  | 3.48  |
+| FusionNet (retrained - PyTorch)    |    -   |     -   |   -   |   -   |
 
 For VOID:
-| Model                 | MAE    | RMSE    | iMAE  | iRMSE |
-| :-------------------- | :----: | :-----: | :---: | :---: |
-| ScaffNet (paper)      | 72.88  | 162.75  | 42.56 | 90.15 |
-| ScaffNet (retrained)  | 65.90  | 153.96  | 35.62 | 77.73 |
-| FusionNet (paper)     | 60.68  | 122.01  | 35.24 | 67.34 |
-| FusionNet (retrained) | 56.24  | 117.94  | 31.58 | 63.78 |
+| Model                              | MAE    | RMSE    | iMAE  | iRMSE  |
+| :--------------------------------- | :----: | :-----: | :---: | :----: |
+| ScaffNet (paper - Tensorflow)      | 72.88  | 162.75  | 42.56 | 90.15  |
+| ScaffNet (retrained - Tensorflow)  | 65.90  | 153.96  | 35.62 | 77.73  |
+| ScaffNet (retrained - PyTorch)     | 61.10  | 130.90  | 45.66 | 134.44 |
+| FusionNet (paper - Tensorflow)     | 60.68  | 122.01  | 35.24 | 67.34  |
+| FusionNet (retrained - Tensorflow) | 56.24  | 117.94  | 31.58 | 63.78  |
+| FusionNet (retrained - PyTorch)    | 54.11  | 116.96  | 34.00 | 68.99  |
 
 ## Running ScaffNet and FusionNet <a name="running-scaffnet-fusionnet"></a>
-To run our pretrained ScaffNet on the KITTI dataset, you may use
-```
-bash bash/run_scaffnet_kitti.sh
-```
-
 To run our pretrained ScaffNet on the VOID dataset, you may use
 ```
-bash bash/run_scaffnet_void1500.sh
-```
-
-To run our pretrained FusionNet on the KITTI dataset, you may use
-```
-bash bash/run_fusionnet_kitti.sh
+bash bash/run_scaffnet-void1500.sh
 ```
 
 To run our pretrained FusionNet on the VOID dataset, you may use
 ```
-bash bash/run_fusionnet_void1500.sh
-```
-
-If you have data that is not preprocessed into form outputted by our setup scripts, you can also run our standalones:
-```
-bash bash/run_fusionnet_standalone_kitti.sh
-bash bash/run_fusionnet_standalone_void1500.sh
+bash bash/run_fusionnet-void1500.sh
 ```
 
 You may replace the restore_path and output_path arguments to evaluate your own checkpoints
 
-Additionally, we have scripts to do batch evaluation over a directory of checkpoints:
-```
-bash bash/run_batch_scaffnet_kitti.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
-bash bash/run_batch_scaffnet_void1500.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
-bash bash/run_batch_fusionnet_kitti.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
-bash bash/run_batch_fusionnet_void1500.sh path/to/directory <first checkpoint> <increment between checkpoints> <last checkpoint>
-```
 
 ## Training ScaffNet and FusionNet <a name="training-scaffnet-fusionnet"></a>
 To train ScaffNet on the Virtual KITTI dataset, you may run
 ```
-sh bash/train_scaffnet_vkitti.sh
+sh bash/train_scaffnet-vkitti.sh
 ```
 
 To train ScaffNet on the SceneNet dataset, you may run
 ```
-sh bash/train_scaffnet_scenenet.sh
+sh bash/train_scaffnet-scenenet.sh
 ```
 
 To monitor your training progress, you may use Tensorboard
@@ -200,23 +174,16 @@ tensorboard --logdir trained_scaffnet/vkitti/<model_name>
 tensorboard --logdir trained_scaffnet/scenenet/<model_name>
 ```
 
-To train FusionNet, we will need to generate ScaffNet predictions first using:
-```
-bash bash/setup_dataset_vkitti_to_kitti.sh
-bash bash/setup_dataset_scenenet_to_void.sh
-```
-
-The bash scripts by default will use our pretrained models. If you've trained your own models and would like to use them, you may modify the above scripts to point to your model checkpoint.
-
+Unlike Tensorflow version of this repository, we will not need a separate set up script to generate ScaffNet predictions for training FusionNet. We will instead load in weights of ScaffNet, freeze them and learn its residual using FusionNet. Note that our PyTorch training code directly uses ScaffNet as part of the inference pipeline end-to-end improves performance. See table above.
 
 To train FusionNet on the KITTI dataset, you may run
 ```
-sh bash/train_fusionnet_kitti.sh
+sh bash/train_fusionnet-kitti.sh
 ```
 
 To train FusionNet on the VOID dataset, you may run
 ```
-sh bash/train_fusionnet_void1500.sh
+sh bash/train_fusionnet-void1500.sh
 ```
 
 To monitor your training progress, you may use Tensorboard
@@ -245,7 +212,7 @@ We also have works in adversarial attacks on depth estimation methods and medica
 - [SPiN][spin_github] : *Small Lesion Segmentation in Brain MRIs with Subpixel Embedding.* Subpixel architecture for segmenting ischemic stroke brain lesions in MRI images, published in the Proceedings of Medical Image Computing and Computer Assisted Intervention (MICCAI) Brain Lesion Workshop 2021 as an **oral paper**.
 
 [kitti_dataset]: http://www.cvlibs.net/datasets/kitti/
-[vkitti_dataset]: https://europe.naverlabs.com/research/computer-vision/proxy-virtual-worlds-vkitti-1/
+[vkitti_dataset]: https://europe.naverlabs.com/research/computer-vision/proxy-virtual-worlds-vkitti-2/
 [scenenet_dataset]: https://robotvault.bitbucket.io/scenenet-rgbd.html
 [nyu_v2_dataset]: https://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html
 [void_github]: https://github.com/alexklwong/void-dataset
